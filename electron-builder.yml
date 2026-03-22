@@ -1,0 +1,58 @@
+appId: com.wechat-claude-code.app
+productName: WeChat Claude Code
+copyright: Copyright © 2025
+
+# Files to include in the package
+files:
+  - dist-electron/**
+  - electron/preload.cjs
+  - electron/renderer/**
+  - node_modules/**
+  - package.json
+
+# Do NOT include the CLI dist/ or src/ in the Electron app
+extraFiles: []
+
+# macOS
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch:
+        - arm64    # Apple Silicon
+        - x64      # Intel
+  icon: electron/assets/icon.png
+
+dmg:
+  title: WeChat Claude Code
+  window:
+    width: 540
+    height: 380
+
+# Windows
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: electron/assets/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+# Linux
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  category: Development
+  icon: electron/assets/icon.png
+
+# Output directory
+directories:
+  output: build
+  buildResources: electron/assets

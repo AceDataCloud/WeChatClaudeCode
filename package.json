@@ -1,0 +1,45 @@
+{
+  "name": "wechat-claude-code",
+  "version": "1.0.0",
+  "description": "Chat with Claude Code from WeChat — desktop app (Electron) + CLI",
+  "type": "module",
+  "main": "dist-electron/electron/main.js",
+  "scripts": {
+    "build": "tsc",
+    "postinstall": "npm run build",
+    "start": "node dist/main.js",
+    "dev": "tsc --watch",
+    "test": "node --test dist/tests/*.test.js",
+    "setup": "node dist/main.js setup",
+    "daemon": "bash scripts/daemon.sh",
+    "electron:build": "tsc -p tsconfig.electron.json",
+    "electron:dev": "npm run build && npm run electron:build && electron .",
+    "electron:pack": "npm run electron:build && electron-builder"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/qrcode": "^1.5.6",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "wechat",
+    "claude-code",
+    "claude",
+    "bridge",
+    "chat",
+    "electron",
+    "desktop"
+  ],
+  "author": "Wechat-ggGitHub",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Wechat-ggGitHub/wechat-claude-code.git"
+  }
+}

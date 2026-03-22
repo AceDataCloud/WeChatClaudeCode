@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'self';" />
+  <title>WeChat Claude Code</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #07c160;
+      --green-deep: #038744;
+      --green-soft: rgba(7, 193, 96, 0.16);
+      --ink: #ebfff2;
+      --text: #e7ebf3;
+      --muted: #8f98aa;
+      --bg: #09110d;
+      --panel: rgba(14, 24, 19, 0.88);
+      --panel-2: rgba(18, 30, 24, 0.92);
+      --panel-3: rgba(11, 18, 16, 0.75);
+      --border: rgba(180, 255, 208, 0.12);
+      --danger: #e45757;
+      --warning: #f0a53a;
+      --shadow: 0 20px 80px rgba(0, 0, 0, 0.35);
+      --radius: 22px;
+      --radius-sm: 14px;
+      --mono: 'SFMono-Regular', ui-monospace, Menlo, monospace;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: 'SF Pro Display', 'Segoe UI', sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(7, 193, 96, 0.18), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(40, 120, 255, 0.12), transparent 26%),
+        linear-gradient(135deg, #07110d, #10161f 55%, #07110d);
+      user-select: none;
+      -webkit-app-region: drag;
+      overflow: hidden;
+    }
+
+    button, a, input, textarea, .no-drag, pre { -webkit-app-region: no-drag; }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      height: 100vh;
+      gap: 18px;
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    body[data-mode="login"] .shell,
+    body[data-mode="scanned"] .shell {
+      grid-template-columns: minmax(320px, 480px);
+      justify-content: center;
+    }
+
+    body[data-mode="login"] .main,
+    body[data-mode="scanned"] .main {
+        min-height: 0;
+        overflow: auto;
+      display: none;
+    }
+
+    .sidebar,
+    .main {
+      border: 1px solid var(--border);
+        min-height: 0;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .sidebar {
+        min-height: 0;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      position: relative;
+    }
+
+    .sidebar::before {
+        align-items: start;
+      content: '';
+
+      .message-stream {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 0;
+        max-height: 420px;
+        overflow: auto;
+        padding-right: 4px;
+      }
+
+      .message-item {
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--panel-3);
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .message-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .message-role {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+      }
+
+      .message-role::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #6f7a8a;
+      }
+
+      .message-item.incoming .message-role::before { background: var(--green); }
+      .message-item.reply .message-role::before { background: #4ea1ff; }
+      .message-item.system .message-role::before { background: var(--warning); }
+      .message-item.error .message-role::before { background: var(--danger); }
+
+      .message-peer,
+      .message-time {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--muted);
+        word-break: break-word;
+      }
+
+      .message-text {
+        font-size: 13px;
+        line-height: 1.65;
+        color: var(--text);
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(7, 193, 96, 0.08), transparent 36%);
+      pointer-events: none;
+    }
+
+    .brand {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-badge {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      background: rgba(7, 193, 96, 0.1);
+      border: 1px solid rgba(127, 255, 178, 0.18);
+      overflow: hidden;
+    }
+
+    .brand-badge img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .brand h1 {
+      font-size: 20px;
+      line-height: 1.1;
+      letter-spacing: 0.02em;
+    }
+
+    .brand p {
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .hero {
+      position: relative;
+      z-index: 1;
+      padding: 18px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(7, 193, 96, 0.12), rgba(14, 24, 19, 0.35));
+      border: 1px solid rgba(7, 193, 96, 0.14);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #bfffd5;
+      background: rgba(7, 193, 96, 0.11);
+      border: 1px solid rgba(7, 193, 96, 0.18);
+      margin-bottom: 12px;
+    }
+
+    .hero h2 {
+      font-size: 24px;
+      line-height: 1.12;
+      margin-bottom: 10px;
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 16px;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #64718a;
+      box-shadow: 0 0 0 0 rgba(100, 113, 138, 0.35);
+    }
+
+    .status-chip.loading .status-dot {
+      background: var(--warning);
+      animation: pulse 1.3s infinite;
+      box-shadow: 0 0 0 10px rgba(240, 165, 58, 0);
+    }
+
+    .status-chip.scan .status-dot,
+    .status-chip.success .status-dot,
+    .status-chip.connected .status-dot {
+      background: var(--green);
+      animation: pulse 1.6s infinite;
+      box-shadow: 0 0 0 10px rgba(7, 193, 96, 0);
+    }
+
+    .status-chip.expired .status-dot { background: var(--warning); }
+    .status-chip.error .status-dot { background: var(--danger); }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(7, 193, 96, 0.34); }
+      70% { box-shadow: 0 0 0 10px rgba(7, 193, 96, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(7, 193, 96, 0); }
+    }
+
+    .qr-card,
+    .setup-card,
+    .connected-card {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 18px;
+      border-radius: 18px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+    }
+
+    #qr-card.hidden,
+    #setup-card.hidden,
+    #connected-card.hidden { display: none; }
+
+    #qr-image {
+      width: min(100%, 250px);
+      aspect-ratio: 1;
+      margin: 0 auto;
+      border-radius: 18px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    #qr-image img { width: 100%; height: 100%; display: block; object-fit: contain; }
+    #qr-image .placeholder { font-size: 40px; opacity: 0.3; color: #1f2937; }
+
+    .field-label {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .dir-row,
+    .action-row,
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .dir-input,
+    .value-box,
+    .stat-card,
+    .metric {
+      background: var(--panel-3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .dir-input,
+    .value-box {
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .dir-input { flex: 1; min-width: 0; }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 11px 15px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s, background 0.15s;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); opacity: 0.82; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .primary {
+      background: linear-gradient(135deg, var(--green), #29d879);
+      color: #052712;
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px dashed var(--border);
+    }
+
+    .connected-card .action-row button,
+    .setup-card .action-row button { flex: 1; }
+
+    .control-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .select-input {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--panel-3);
+      color: var(--text);
+      font-size: 13px;
+      padding: 12px 14px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .main-header {
+      padding: 22px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .main-header h3 {
+      font-size: 24px;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .main-header p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .timestamp {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .content {
+      padding: 20px 24px 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+      min-width: 0;
+      overflow: auto;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat-card {
+      padding: 16px;
+      min-width: 0;
+    }
+
+    .stat-card .label {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+
+    .stat-card .value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stat-card .sub {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .panel-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .panel {
+      min-width: 0;
+      border-radius: 18px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .panel-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      padding: 14px;
+      min-width: 0;
+    }
+
+    .metric .metric-label {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .metric .metric-value {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .log-box {
+      min-height: 360px;
+      max-height: 420px;
+      overflow: auto;
+      border-radius: 16px;
+      padding: 16px;
+      background: #050908;
+      border: 1px solid rgba(180, 255, 208, 0.08);
+      color: #c5ffd8;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .toolbar .secondary,
+    .toolbar .ghost { padding-inline: 12px; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .pill strong { color: var(--ink); }
+
+    @media (max-width: 980px) {
+      body {
+        overflow: auto;
+      }
+
+      .shell {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+      }
+
+      .stats-grid,
+      .details-grid,
+      .panel-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .main,
+      .sidebar,
+      .content {
+        min-height: unset;
+      }
+
+      .log-box,
+      .message-stream {
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        gap: 12px;
+        padding: 12px;
+      }
+
+      .sidebar,
+      .main {
+        border-radius: 18px;
+      }
+
+      .sidebar,
+      .main-header,
+      .content,
+      .panel,
+      .qr-card,
+      .setup-card,
+      .connected-card {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .main-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .hero h2,
+      .main-header h3 {
+        font-size: 20px;
+      }
+
+      .dir-row,
+      .action-row,
+      .toolbar,
+      .message-meta {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .connected-card .action-row button,
+      .setup-card .action-row button,
+      .toolbar button,
+      .dir-row button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge"><img src="../assets/icon.svg" alt="WeChat Claude Code" /></div>
+        <div>
+          <h1>WeChat Claude Code</h1>
+          <p>把本地 Claude Code 变成一个可通过微信远程调用的桌面代理。</p>
+        </div>
+      </div>
+
+      <div class="hero">
+        <div class="eyebrow">Desktop Bridge</div>
+        <h2>扫码、连上、后台常驻。</h2>
+        <p>这不是一个藏在托盘里的脚本壳。现在它会像真正的桌面控制台一样，把连接状态、运行情况和最近日志都直接呈现出来。</p>
+        <div id="status-chip" class="status-chip loading">
+          <span class="status-dot"></span>
+          <span id="status-text">正在初始化...</span>
+        </div>
+      </div>
+
+      <section id="qr-card" class="qr-card">
+        <div class="field-label">扫码绑定</div>
+        <div id="qr-image">
+          <span class="placeholder">⬡</span>
+        </div>
+        <div class="hint">第一次使用时请直接用微信扫码。二维码过期会自动刷新。</div>
+      </section>
+
+      <section id="setup-card" class="setup-card hidden no-drag">
+        <div>
+          <div class="field-label">工作目录</div>
+          <div class="dir-row" style="margin-top:8px;">
+            <div id="dir-display" class="dir-input">~/</div>
+            <button class="secondary" id="pick-dir-btn">选择</button>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="primary" id="start-btn">开始使用</button>
+        </div>
+        <div class="hint">开始后，桥接守护进程会在后台运行。关闭窗口只会隐藏，不会退出。</div>
+      </section>
+
+      <section id="connected-card" class="connected-card hidden no-drag">
+        <div>
+          <div class="field-label">当前连接</div>
+          <div class="value-box" id="connected-account" style="margin-top:8px;">-</div>
+        </div>
+        <div>
+          <div class="field-label">当前目录</div>
+          <div class="dir-row" style="margin-top:8px;">
+            <div class="dir-input" id="connected-dir">-</div>
+            <button class="secondary" id="change-dir-btn">更改</button>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="secondary" id="open-dir-btn">打开目录</button>
+          <button class="ghost" id="relogin-btn">重新扫码</button>
+        </div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <div class="main-header">
+        <div>
+          <h3>运行控制台</h3>
+          <p>查看 daemon 是否正常、当前会话状态、最近消息与回复，以及落盘日志。</p>
+        </div>
+        <div class="timestamp no-drag" id="last-refresh">--</div>
+      </div>
+
+      <div class="content">
+        <section class="stats-grid">
+          <article class="stat-card">
+            <div class="label">Daemon</div>
+            <div class="value" id="daemon-running">-</div>
+            <div class="sub" id="daemon-started-at">-</div>
+          </article>
+          <article class="stat-card">
+            <div class="label">Session</div>
+            <div class="value" id="session-state">-</div>
+            <div class="sub" id="permission-mode">-</div>
+          </article>
+          <article class="stat-card">
+            <div class="label">Model</div>
+            <div class="value" id="session-model">-</div>
+            <div class="sub" id="sdk-session-id">-</div>
+          </article>
+          <article class="stat-card">
+            <div class="label">Health</div>
+            <div class="value" id="health-state">-</div>
+            <div class="sub" id="last-error-at">-</div>
+          </article>
+        </section>
+
+        <section class="panel-grid">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Bridge Details</div>
+                <div class="panel-subtitle">当前账号、微信 bot 地址、最近收发消息与会话信息。</div>
+              </div>
+              <div class="pill"><strong id="connected-pill">未连接</strong></div>
+            </div>
+
+            <div class="details-grid">
+              <div class="metric">
+                <div class="metric-label">Account ID</div>
+                <div class="metric-value" id="account-id">-</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">User ID</div>
+                <div class="metric-value" id="user-id">-</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Base URL</div>
+                <div class="metric-value" id="base-url">-</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Working Directory</div>
+                <div class="metric-value" id="working-directory">-</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Claude CWD</div>
+                <div class="metric-value" id="claude-working-directory">-</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Last Incoming</div>
+                <div class="metric-value" id="last-incoming">-</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Last Reply</div>
+                <div class="metric-value" id="last-reply">-</div>
+              </div>
+              <div class="metric" style="grid-column: 1 / -1;">
+                <div class="metric-label">Last Error</div>
+                <div class="metric-value" id="last-error">-</div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Claude Controls</div>
+                <div class="panel-subtitle">查看当前 Claude 会话工作目录、权限模式，并处理待审批工具调用。</div>
+              </div>
+            </div>
+            <div class="details-grid">
+              <div class="metric">
+                <div class="metric-label">Permission Mode</div>
+                <div class="control-stack no-drag">
+                  <select id="permission-mode-select" class="select-input">
+                    <option value="bypassPermissions">bypassPermissions</option>
+                    <option value="acceptEdits">acceptEdits</option>
+                    <option value="default">default</option>
+                    <option value="plan">plan</option>
+                  </select>
+                  <button class="secondary" id="save-permission-mode-btn">保存权限模式</button>
+                  <div class="hint">`bypassPermissions` 会直接跳过工具权限确认。桥接层会自动同时启用 SDK 的 `allowDangerouslySkipPermissions`。只有在你明确接受这个风险时才应该保持这个默认值。</div>
+                </div>
+              </div>
+              <div class="metric" style="grid-column: 1 / -1;">
+                <div class="metric-label">Pending Tool Permission</div>
+                <div class="metric-value" id="pending-permission">当前没有待审批请求</div>
+                <div class="action-row no-drag" style="margin-top: 12px;">
+                  <button class="primary" id="approve-permission-btn">允许</button>
+                  <button class="ghost" id="deny-permission-btn">拒绝</button>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Live Message Feed</div>
+                <div class="panel-subtitle">实时显示微信发来的消息、Claude Code 回复，以及当前桥接状态事件。</div>
+              </div>
+            </div>
+            <div class="message-stream no-drag" id="message-stream">
+              <div class="hint">正在等待消息流...</div>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel-grid">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Recent Logs</div>
+                <div class="panel-subtitle">显示最近 120 行桥接日志，便于排查会话过期、daemon 异常或消息收发问题。</div>
+              </div>
+              <div class="toolbar no-drag">
+                <button class="secondary" id="refresh-logs-btn">刷新</button>
+                <button class="ghost" id="open-log-dir-btn">打开日志目录</button>
+              </div>
+            </div>
+            <div class="value-box" id="log-file" style="font-family: var(--mono); font-size: 12px;">-</div>
+            <pre class="log-box no-drag" id="log-box">正在读取日志...</pre>
+          </article>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>
