@@ -2,6 +2,10 @@
 
 Chat with Claude Code directly from WeChat.
 
+Desktop App Screenshot:
+
+[![WeChat Claude Code Desktop App](https://cdn.acedata.cloud/70c7f31d1b.png)](https://cdn.acedata.cloud/70c7f31d1b.png)
+
 This project includes:
 
 - A CLI setup and daemon workflow for account binding and message polling.
