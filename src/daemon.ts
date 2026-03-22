@@ -381,7 +381,7 @@ async function sendToClaude(
         }
 
         const allowed = await permissionPromise;
-  opts.onPermissionResolved?.(allowed, toolName);
+        opts.onPermissionResolved?.(allowed, toolName);
         session.state = "processing";
         sessionStore.save(account.accountId, session);
         return allowed;

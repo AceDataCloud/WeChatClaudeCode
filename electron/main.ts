@@ -24,7 +24,12 @@ import { homedir } from "os";
 
 import { loadLatestAccount, type AccountData } from "../src/wechat/accounts.js";
 import { startQrLogin, waitForQrScan } from "../src/wechat/login.js";
-import { loadConfig, saveConfig } from "../src/config.js";
+import {
+  loadConfig,
+  saveConfig,
+  ensurePermissionModeConfig,
+  type PermissionMode,
+} from "../src/config.js";
 import { createDaemon, type DaemonHandle } from "../src/daemon.js";
 import { logger } from "../src/logger.js";
 import { createSessionStore } from "../src/session.js";
@@ -67,6 +72,13 @@ const APP_ICON_DATA_URL =
     </svg>
   `);
 
+const SUGGESTED_MODELS = [
+  "default",
+  "claude-sonnet-4-6",
+  "claude-opus-4-1",
+  "claude-haiku-3-5",
+];
+
 const runtimeState = {
   daemonRunning: false,
   setupRequired: false,
@@ -80,6 +92,8 @@ const runtimeState = {
   lastError: "",
   sessionExpired: false,
   claudeWorkingDirectory: "",
+  dangerousPermissionsEnabled: true,
+  cwdBindingStatus: "启动时会以 UI 选择目录覆盖 Claude Session",
   pendingPermission: null as null | {
     toolName: string;
     toolInput: string;
@@ -380,9 +394,14 @@ function getDashboardData(): {
   startedAt: string;
   sessionState: string;
   model: string;
+  configuredModel: string;
   permissionMode: string;
+  dangerousPermissionsEnabled: boolean;
   sdkSessionId: string;
   claudeWorkingDirectory: string;
+  cwdBindingStatus: string;
+  resumeSessionReady: boolean;
+  suggestedModels: string[];
   sessionExpired: boolean;
   lastIncomingAt: string;
   lastIncomingFrom: string;
@@ -405,7 +424,7 @@ function getDashboardData(): {
   };
   logFile: string;
 } {
-  const config = loadConfig();
+  const config = ensurePermissionModeConfig(loadConfig());
   const account = connectedAccount;
   const session = account
     ? sessionStore.load(account.accountId)
@@ -428,14 +447,28 @@ function getDashboardData(): {
     startedAt: runtimeState.startedAt,
     sessionState: session.state ?? "idle",
     model: session.model || config.model || "default",
+    configuredModel: config.model || "default",
     permissionMode:
-      session.permissionMode || config.permissionMode || "default",
+      session.permissionMode || config.permissionMode || "bypassPermissions",
+    dangerousPermissionsEnabled:
+      (session.permissionMode ||
+        config.permissionMode ||
+        "bypassPermissions") === "bypassPermissions",
     sdkSessionId: session.sdkSessionId || "",
     claudeWorkingDirectory:
       runtimeState.claudeWorkingDirectory ||
       session.workingDirectory ||
       config.workingDirectory ||
       homedir(),
+    cwdBindingStatus:
+      (runtimeState.claudeWorkingDirectory ||
+        session.workingDirectory ||
+        config.workingDirectory ||
+        homedir()) === (config.workingDirectory || homedir())
+        ? "已锁定到 UI 选择目录，daemon 启动时会强制覆盖 session cwd"
+        : "当前 Claude cwd 与 UI 目录不一致，下一次启动会重新覆盖",
+    resumeSessionReady: Boolean(session.sdkSessionId),
+    suggestedModels: SUGGESTED_MODELS,
     sessionExpired: runtimeState.sessionExpired,
     lastIncomingAt: runtimeState.lastIncomingAt,
     lastIncomingFrom: runtimeState.lastIncomingFrom,
@@ -483,15 +516,20 @@ function setupIpcHandlers(): void {
         text: `目录已确认，开始启动桥接：${workingDirectory || homedir()}`,
         peer: connectedAccount.accountId,
       });
-      const config = loadConfig();
+      const config = ensurePermissionModeConfig(loadConfig());
       config.workingDirectory = workingDirectory || homedir();
       saveConfig(config);
 
       const session = sessionStore.load(connectedAccount.accountId);
       session.workingDirectory = config.workingDirectory;
-      session.permissionMode = config.permissionMode || session.permissionMode || "bypassPermissions";
+      session.permissionMode =
+        config.permissionMode || session.permissionMode || "bypassPermissions";
       sessionStore.save(connectedAccount.accountId, session);
       runtimeState.claudeWorkingDirectory = session.workingDirectory;
+      runtimeState.dangerousPermissionsEnabled =
+        session.permissionMode === "bypassPermissions";
+      runtimeState.cwdBindingStatus =
+        "已锁定到 UI 选择目录，daemon 启动时会强制覆盖 session cwd";
 
       await startDaemon(connectedAccount);
       setupTray(connectedAccount);
@@ -510,7 +548,8 @@ function setupIpcHandlers(): void {
 
   // Renderer asks for current config
   ipcMain.handle("get-config", () => {
-    const config = loadConfig();
+    const config = ensurePermissionModeConfig(loadConfig());
+    saveConfig(config);
     return {
       workingDirectory: config.workingDirectory || homedir(),
       accountId: connectedAccount?.accountId ?? "",
@@ -527,31 +566,72 @@ function setupIpcHandlers(): void {
     return { content: readRecentLogs(maxLines), logFile: getLatestLogPath() };
   });
 
-  ipcMain.handle("set-permission-mode", async (_event, permissionMode: string) => {
-    if (!["default", "acceptEdits", "plan", "bypassPermissions"].includes(permissionMode)) {
-      return { ok: false, error: "不支持的权限模式" };
-    }
+  ipcMain.handle(
+    "set-permission-mode",
+    async (_event, permissionMode: string) => {
+      if (
+        !["default", "acceptEdits", "plan", "bypassPermissions"].includes(
+          permissionMode,
+        )
+      ) {
+        return { ok: false, error: "不支持的权限模式" };
+      }
 
-    const config = loadConfig();
-    config.permissionMode = permissionMode as "default" | "acceptEdits" | "plan" | "bypassPermissions";
+      const config = ensurePermissionModeConfig(loadConfig());
+      config.permissionMode = permissionMode as PermissionMode;
+      config.permissionModeExplicit = true;
+      saveConfig(config);
+
+      const account = connectedAccount;
+      if (account) {
+        const session = sessionStore.load(account.accountId);
+        session.permissionMode = config.permissionMode;
+        session.workingDirectory =
+          config.workingDirectory || session.workingDirectory || homedir();
+        sessionStore.save(account.accountId, session);
+      }
+
+      runtimeState.dangerousPermissionsEnabled =
+        config.permissionMode === "bypassPermissions";
+
+      pushRecentMessage({
+        role: "system",
+        text: `权限模式已切换为 ${permissionMode}`,
+        peer: connectedAccount?.accountId ?? "",
+      });
+
+      return { ok: true, permissionMode: config.permissionMode };
+    },
+  );
+
+  ipcMain.handle("set-model", async (_event, model: string) => {
+    const nextModel = model.trim();
+    const normalizedModel =
+      nextModel === "" || nextModel === "default" ? undefined : nextModel;
+
+    const config = ensurePermissionModeConfig(loadConfig());
+    config.model = normalizedModel;
     saveConfig(config);
 
     const account = connectedAccount;
     if (account) {
       const session = sessionStore.load(account.accountId);
-      session.permissionMode = config.permissionMode;
-      session.workingDirectory =
-        config.workingDirectory || session.workingDirectory || homedir();
+      session.model = normalizedModel;
+      session.sdkSessionId = undefined;
+      session.state = "idle";
       sessionStore.save(account.accountId, session);
     }
 
     pushRecentMessage({
       role: "system",
-      text: `权限模式已切换为 ${permissionMode}`,
+      text: `Claude 模型已切换为 ${normalizedModel || "default"}，下次请求会以新模型启动新 session`,
       peer: connectedAccount?.accountId ?? "",
     });
 
-    return { ok: true, permissionMode: config.permissionMode };
+    return {
+      ok: true,
+      model: normalizedModel || "default",
+    };
   });
 
   ipcMain.handle("resolve-permission", async (_event, allowed: boolean) => {
@@ -588,24 +668,27 @@ function setupIpcHandlers(): void {
         peer: connectedAccount?.accountId ?? "",
       });
       const config = loadConfig();
-      config.workingDirectory = workingDirectory || homedir();
-      saveConfig(config);
+      const normalizedConfig = ensurePermissionModeConfig(config);
+      normalizedConfig.workingDirectory = workingDirectory || homedir();
+      saveConfig(normalizedConfig);
 
       const account = connectedAccount;
       if (account) {
         const session = sessionStore.load(account.accountId);
-        session.workingDirectory = config.workingDirectory;
+        session.workingDirectory = normalizedConfig.workingDirectory;
         sessionStore.save(account.accountId, session);
         runtimeState.claudeWorkingDirectory = session.workingDirectory;
+        runtimeState.cwdBindingStatus =
+          "已锁定到 UI 选择目录，daemon 启动时会强制覆盖 session cwd";
         updateTrayMenu(account);
         sendAppState({
           mode: "connected",
           accountId: account.accountId,
-          workingDirectory: config.workingDirectory,
+          workingDirectory: normalizedConfig.workingDirectory,
         });
       }
 
-      return { ok: true, workingDirectory: config.workingDirectory };
+      return { ok: true, workingDirectory: normalizedConfig.workingDirectory };
     },
   );
 
@@ -671,7 +754,8 @@ async function startDaemon(account: AccountData): Promise<void> {
     daemon = null;
   }
 
-  const config = loadConfig();
+  const config = ensurePermissionModeConfig(loadConfig());
+  saveConfig(config);
   const session = sessionStore.load(account.accountId);
   session.workingDirectory =
     config.workingDirectory || session.workingDirectory || homedir();
@@ -679,10 +763,14 @@ async function startDaemon(account: AccountData): Promise<void> {
     config.permissionMode || session.permissionMode || "bypassPermissions";
   sessionStore.save(account.accountId, session);
   runtimeState.claudeWorkingDirectory = session.workingDirectory;
+  runtimeState.dangerousPermissionsEnabled =
+    session.permissionMode === "bypassPermissions";
+  runtimeState.cwdBindingStatus =
+    "已锁定到 UI 选择目录，daemon 启动时会强制覆盖 session cwd";
   logger.info("Starting daemon instance", {
     accountId: account.accountId,
     workingDirectory: session.workingDirectory,
-    permissionMode: session.permissionMode || "default",
+    permissionMode: session.permissionMode || "bypassPermissions",
     model: config.model || "default",
   });
   pushRecentMessage({

@@ -24,7 +24,10 @@ export interface QueryOptions {
     type: "image";
     source: { type: "base64"; media_type: string; data: string };
   }>;
-  onPermissionRequest?: (toolName: string, toolInput: string) => Promise<boolean>;
+  onPermissionRequest?: (
+    toolName: string,
+    toolInput: string,
+  ) => Promise<boolean>;
 }
 
 export interface QueryResult {

@@ -60,6 +60,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   getDashboardData(): Promise<{
     connected: boolean;
+    setupRequired: boolean;
     accountId: string;
     userId: string;
     baseUrl: string;
@@ -68,8 +69,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
     startedAt: string;
     sessionState: string;
     model: string;
+    configuredModel: string;
     permissionMode: string;
+    dangerousPermissionsEnabled: boolean;
     sdkSessionId: string;
+    claudeWorkingDirectory: string;
+    cwdBindingStatus: string;
+    resumeSessionReady: boolean;
+    suggestedModels: string[];
     sessionExpired: boolean;
     lastIncomingAt: string;
     lastIncomingFrom: string;
@@ -78,6 +85,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
     lastReplyText: string;
     lastErrorAt: string;
     lastError: string;
+    recentMessages: Array<{
+      id: string;
+      role: "incoming" | "reply" | "system" | "error";
+      text: string;
+      timestamp: string;
+      peer: string;
+    }>;
+    pendingPermission: null | {
+      toolName: string;
+      toolInput: string;
+      requestedAt: string;
+    };
     logFile: string;
   }> {
     return ipcRenderer.invoke("get-dashboard-data");
@@ -99,7 +118,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return ipcRenderer.invoke("set-permission-mode", permissionMode);
   },
 
-  resolvePermission(allowed: boolean): Promise<{ ok: boolean; error?: string }> {
+  setModel(
+    model: string,
+  ): Promise<{ ok: boolean; model?: string; error?: string }> {
+    return ipcRenderer.invoke("set-model", model);
+  },
+
+  resolvePermission(
+    allowed: boolean,
+  ): Promise<{ ok: boolean; error?: string }> {
     return ipcRenderer.invoke("resolve-permission", allowed);
   },
 

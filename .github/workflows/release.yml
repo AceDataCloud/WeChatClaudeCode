@@ -1,0 +1,112 @@
+name: Build and Release Desktop Apps
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Optional tag to create/update release, e.g. v1.2.3"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: windows-x64
+            os: windows-latest
+            build_command: npx electron-builder --publish never --win nsis --x64
+            artifact_glob: build/*.exe
+          - label: macos-intel-x64
+            os: macos-13
+            build_command: npx electron-builder --publish never --mac dmg --x64
+            artifact_glob: build/*.dmg
+          - label: macos-apple-silicon-arm64
+            os: macos-14
+            build_command: npx electron-builder --publish never --mac dmg --arm64
+            artifact_glob: build/*.dmg
+          - label: linux-x64
+            os: ubuntu-latest
+            build_command: npx electron-builder --publish never --linux AppImage --x64
+            artifact_glob: build/*.AppImage
+
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript (CLI)
+        run: npm run build
+
+      - name: Build TypeScript (Electron)
+        run: npm run electron:build
+
+      - name: Build installers
+        run: ${{ matrix.build_command }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.label }}
+          path: |
+            ${{ matrix.artifact_glob }}
+            build/latest*.yml
+            build/*.blockmap
+          if-no-files-found: warn
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.release_tag != ''
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Prepare release metadata
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            tag="${GITHUB_REF#refs/tags/}"
+          else
+            tag="${{ github.event.inputs.release_tag }}"
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: Release ${{ steps.meta.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            release-assets/**/*.exe
+            release-assets/**/*.dmg
+            release-assets/**/*.AppImage
+            release-assets/**/latest*.yml
+            release-assets/**/*.blockmap

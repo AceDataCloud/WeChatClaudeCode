@@ -8,6 +8,7 @@ const setupCard = document.getElementById("setup-card");
 const connectedCard = document.getElementById("connected-card");
 const messageStream = document.getElementById("message-stream");
 const permissionModeSelect = document.getElementById("permission-mode-select");
+const modelInput = document.getElementById("model-input");
 
 function formatTime(value) {
   if (!value) return "-";
@@ -43,13 +44,16 @@ function renderRecentMessages(messages) {
   if (!messageStream) return;
 
   if (!messages || messages.length === 0) {
-    messageStream.innerHTML = '<div class="hint">还没有实时消息，等微信发一条消息过来这里就会出现。</div>';
+    messageStream.innerHTML =
+      '<div class="hint">还没有实时消息，等微信发一条消息过来这里就会出现。</div>';
     return;
   }
 
   messageStream.innerHTML = messages
     .map((item) => {
-      const peer = item.peer ? `<div class="message-peer">${escapeHtml(item.peer)}</div>` : "";
+      const peer = item.peer
+        ? `<div class="message-peer">${escapeHtml(item.peer)}</div>`
+        : "";
       return `
         <article class="message-item ${escapeHtml(item.role)}">
           <div class="message-meta">
@@ -105,12 +109,26 @@ async function refreshDashboard() {
     : "尚未启动";
   document.getElementById("session-state").textContent =
     data.sessionState || "idle";
+  document.getElementById("session-state-compact").textContent =
+    data.sessionState || "idle";
+  const effectivePermissionMode = data.permissionMode || "bypassPermissions";
   document.getElementById("permission-mode").textContent =
-    `Permission: ${data.permissionMode || "default"}`;
+    `Permission: ${effectivePermissionMode}${data.dangerousPermissionsEnabled ? " · dangerous skip on" : ""}`;
+  document.getElementById("permission-mode-compact").textContent =
+    effectivePermissionMode;
   document.getElementById("session-model").textContent =
     data.model || "default";
+  document.getElementById("configured-model").textContent =
+    data.configuredModel || "default";
+  document.getElementById("active-model").textContent = data.model || "default";
   document.getElementById("sdk-session-id").textContent =
     data.sdkSessionId || "无活跃 SDK Session";
+  document.getElementById("sdk-session-id-compact").textContent =
+    data.sdkSessionId || "无活跃 SDK Session";
+  document.getElementById("session-resume-status").textContent =
+    data.resumeSessionReady
+      ? "可继续沿用当前 Claude session"
+      : "下次请求会新建 session";
   document.getElementById("health-state").textContent = data.sessionExpired
     ? "Session Expired"
     : data.lastError
@@ -130,6 +148,18 @@ async function refreshDashboard() {
     data.workingDirectory || "-";
   document.getElementById("claude-working-directory").textContent =
     data.claudeWorkingDirectory || data.workingDirectory || "-";
+  document.getElementById("effective-permission-mode").textContent =
+    effectivePermissionMode;
+  document.getElementById("dangerous-skip-status").textContent =
+    data.dangerousPermissionsEnabled
+      ? "Enabled via bypassPermissions + allowDangerouslySkipPermissions"
+      : "Disabled";
+  document.getElementById("dangerous-skip-status-compact").textContent =
+    data.dangerousPermissionsEnabled
+      ? "dangerous skip on"
+      : "dangerous skip off";
+  document.getElementById("cwd-binding-status").textContent =
+    data.cwdBindingStatus || "-";
   document.getElementById("last-incoming").textContent = data.lastIncomingText
     ? `${formatTime(data.lastIncomingAt)}\n${data.lastIncomingText}`
     : "-";
@@ -141,7 +171,15 @@ async function refreshDashboard() {
     : "最近没有错误";
 
   if (permissionModeSelect) {
-    permissionModeSelect.value = data.permissionMode || "bypassPermissions";
+    permissionModeSelect.value = effectivePermissionMode;
+  }
+
+  if (modelInput) {
+    modelInput.value =
+      data.configuredModel && data.configuredModel !== "default"
+        ? data.configuredModel
+        : "";
+    modelInput.placeholder = data.suggestedModels?.[0] || "default";
   }
 
   const pendingPermissionEl = document.getElementById("pending-permission");
@@ -265,6 +303,19 @@ function bindEvents() {
     });
 
   document
+    .getElementById("save-model-btn")
+    .addEventListener("click", async () => {
+      const nextModel = (modelInput?.value || "").trim();
+      const result = await api.setModel(nextModel || "default");
+      if (!result.ok) {
+        setStatus("error", `模型更新失败: ${result.error}`);
+        return;
+      }
+      setStatus("connected", `模型已更新为 ${result.model}`);
+      await refreshDashboard();
+    });
+
+  document
     .getElementById("approve-permission-btn")
     .addEventListener("click", async () => {
       const result = await api.resolvePermission(true);
@@ -358,12 +409,12 @@ async function bootstrap() {
 
   if (!body.dataset.mode) {
     if (dashboard.connected) {
-      setMode('connected');
+      setMode("connected");
     } else if (dashboard.setupRequired) {
-      setMode('scanned');
+      setMode("scanned");
     } else {
-      setMode('login');
-      setStatus('loading', '正在获取二维码...');
+      setMode("login");
+      setStatus("loading", "正在获取二维码...");
     }
   }
 

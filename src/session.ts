@@ -1,17 +1,18 @@
-import { loadJson, saveJson } from './store.js';
-import { join } from 'path';
-import { mkdirSync } from 'fs';
+import { loadJson, saveJson } from "./store.js";
+import { join } from "path";
+import { mkdirSync } from "fs";
 
-const DATA_DIR = process.env.WCC_DATA_DIR || join(process.env.HOME!, '.wechat-claude-code');
-const SESSIONS_DIR = join(DATA_DIR, 'sessions');
+const DATA_DIR =
+  process.env.WCC_DATA_DIR || join(process.env.HOME!, ".wechat-claude-code");
+const SESSIONS_DIR = join(DATA_DIR, "sessions");
 
-export type SessionState = 'idle' | 'processing' | 'waiting_permission';
+export type SessionState = "idle" | "processing" | "waiting_permission";
 
 export interface Session {
   sdkSessionId?: string;
   workingDirectory: string;
   model?: string;
-  permissionMode?: 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions';
+  permissionMode?: "default" | "acceptEdits" | "plan" | "bypassPermissions";
   state: SessionState;
 }
 
@@ -30,7 +31,7 @@ export function createSessionStore() {
   function load(accountId: string): Session {
     return loadJson<Session>(getSessionPath(accountId), {
       workingDirectory: process.cwd(),
-      state: 'idle',
+      state: "idle",
     });
   }
 
@@ -44,7 +45,7 @@ export function createSessionStore() {
       workingDirectory: currentSession?.workingDirectory ?? process.cwd(),
       model: currentSession?.model,
       permissionMode: currentSession?.permissionMode,
-      state: 'idle',
+      state: "idle",
     };
     save(accountId, session);
     return session;

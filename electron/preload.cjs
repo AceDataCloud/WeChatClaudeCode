@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setPermissionMode(permissionMode) {
     return ipcRenderer.invoke("set-permission-mode", permissionMode);
   },
+  setModel(model) {
+    return ipcRenderer.invoke("set-model", model);
+  },
   resolvePermission(allowed) {
     return ipcRenderer.invoke("resolve-permission", allowed);
   },

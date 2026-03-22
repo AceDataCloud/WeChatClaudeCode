@@ -13,20 +13,29 @@
       --green: #07c160;
       --green-deep: #038744;
       --green-soft: rgba(7, 193, 96, 0.16);
+      --blue-soft: rgba(78, 161, 255, 0.16);
       --ink: #ebfff2;
       --text: #e7ebf3;
       --muted: #8f98aa;
+      --muted-strong: #b9c4d3;
       --bg: #09110d;
       --panel: rgba(14, 24, 19, 0.88);
       --panel-2: rgba(18, 30, 24, 0.92);
       --panel-3: rgba(11, 18, 16, 0.75);
+      --panel-4: rgba(21, 34, 28, 0.96);
       --border: rgba(180, 255, 208, 0.12);
       --danger: #e45757;
       --warning: #f0a53a;
       --shadow: 0 20px 80px rgba(0, 0, 0, 0.35);
+      --shadow-soft: 0 16px 36px rgba(0, 0, 0, 0.22);
       --radius: 22px;
       --radius-sm: 14px;
       --mono: 'SFMono-Regular', ui-monospace, Menlo, monospace;
+    }
+
+    html,
+    body {
+      height: 100%;
     }
 
     body {
@@ -38,18 +47,41 @@
         radial-gradient(circle at bottom right, rgba(40, 120, 255, 0.12), transparent 26%),
         linear-gradient(135deg, #07110d, #10161f 55%, #07110d);
       user-select: none;
-      -webkit-app-region: drag;
+      -webkit-app-region: no-drag;
       overflow: hidden;
+      scrollbar-gutter: stable both-edges;
     }
 
     button, a, input, textarea, .no-drag, pre { -webkit-app-region: no-drag; }
 
+    *::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: rgba(185, 196, 211, 0.18);
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+      background: rgba(185, 196, 211, 0.3);
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
     .shell {
       display: grid;
-      grid-template-columns: 360px minmax(0, 1fr);
+      grid-template-columns: 320px minmax(0, 1fr);
       height: 100vh;
-      gap: 18px;
-      padding: 18px;
+      gap: 16px;
+      padding: 16px;
       overflow: hidden;
     }
 
@@ -61,106 +93,106 @@
 
     body[data-mode="login"] .main,
     body[data-mode="scanned"] .main {
-        min-height: 0;
-        overflow: auto;
+      min-height: 0;
+      overflow: auto;
       display: none;
     }
 
     .sidebar,
     .main {
       border: 1px solid var(--border);
-        min-height: 0;
+      min-height: 0;
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       backdrop-filter: blur(16px);
-      background: var(--panel);
-      overflow: hidden;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0)), var(--panel);
     }
 
     .sidebar {
-        min-height: 0;
-      padding: 22px;
+      min-height: 0;
+      padding: 18px;
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 14px;
       position: relative;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     .sidebar::before {
-        align-items: start;
       content: '';
-
-      .message-stream {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        min-height: 0;
-        max-height: 420px;
-        overflow: auto;
-        padding-right: 4px;
-      }
-
-      .message-item {
-        border-radius: 16px;
-        border: 1px solid var(--border);
-        background: var(--panel-3);
-        padding: 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        min-width: 0;
-      }
-
-      .message-meta {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-
-      .message-role {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--muted);
-      }
-
-      .message-role::before {
-        content: '';
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: #6f7a8a;
-      }
-
-      .message-item.incoming .message-role::before { background: var(--green); }
-      .message-item.reply .message-role::before { background: #4ea1ff; }
-      .message-item.system .message-role::before { background: var(--warning); }
-      .message-item.error .message-role::before { background: var(--danger); }
-
-      .message-peer,
-      .message-time {
-        font-family: var(--mono);
-        font-size: 11px;
-        color: var(--muted);
-        word-break: break-word;
-      }
-
-      .message-text {
-        font-size: 13px;
-        line-height: 1.65;
-        color: var(--text);
-        white-space: pre-wrap;
-        word-break: break-word;
-      }
       position: absolute;
       inset: 0;
       background: linear-gradient(180deg, rgba(7, 193, 96, 0.08), transparent 36%);
       pointer-events: none;
+    }
+
+    .message-stream {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 360px;
+      max-height: 520px;
+      overflow: auto;
+      padding-right: 6px;
+    }
+
+    .message-item {
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--panel-3);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .message-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .message-role {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    .message-role::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #6f7a8a;
+    }
+
+    .message-item.incoming .message-role::before { background: var(--green); }
+    .message-item.reply .message-role::before { background: #4ea1ff; }
+    .message-item.system .message-role::before { background: var(--warning); }
+    .message-item.error .message-role::before { background: var(--danger); }
+
+    .message-peer,
+    .message-time {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      word-break: break-word;
+    }
+
+    .message-text {
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
     .brand {
@@ -169,6 +201,8 @@
       display: flex;
       align-items: center;
       gap: 14px;
+      -webkit-app-region: drag;
+      padding: 4px 2px 10px;
     }
 
     .brand-badge {
@@ -191,7 +225,7 @@
     }
 
     .brand h1 {
-      font-size: 20px;
+      font-size: 22px;
       line-height: 1.1;
       letter-spacing: 0.02em;
     }
@@ -206,10 +240,13 @@
     .hero {
       position: relative;
       z-index: 1;
-      padding: 18px;
+      padding: 20px;
       border-radius: 18px;
-      background: linear-gradient(180deg, rgba(7, 193, 96, 0.12), rgba(14, 24, 19, 0.35));
+      background:
+        radial-gradient(circle at top right, rgba(78, 161, 255, 0.18), transparent 34%),
+        linear-gradient(180deg, rgba(7, 193, 96, 0.13), rgba(14, 24, 19, 0.42));
       border: 1px solid rgba(7, 193, 96, 0.14);
+      box-shadow: var(--shadow-soft);
     }
 
     .eyebrow {
@@ -228,7 +265,7 @@
     }
 
     .hero h2 {
-      font-size: 24px;
+      font-size: 28px;
       line-height: 1.12;
       margin-bottom: 10px;
     }
@@ -287,10 +324,11 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
-      padding: 18px;
+      padding: 16px;
       border-radius: 18px;
       background: var(--panel-2);
       border: 1px solid var(--border);
+      box-shadow: var(--shadow-soft);
     }
 
     #qr-card.hidden,
@@ -332,7 +370,7 @@
     .value-box,
     .stat-card,
     .metric {
-      background: var(--panel-3);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)), var(--panel-3);
       border: 1px solid var(--border);
       border-radius: 14px;
     }
@@ -409,15 +447,25 @@
       display: flex;
       flex-direction: column;
       min-width: 0;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
     }
 
     .main-header {
-      padding: 22px 24px 16px;
-      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      padding: 20px 24px 18px;
+      border-bottom: 1px solid rgba(180, 255, 208, 0.08);
       display: flex;
       align-items: flex-end;
       justify-content: space-between;
       gap: 18px;
+      -webkit-app-region: drag;
+      background: linear-gradient(180deg, rgba(9, 17, 13, 0.96), rgba(9, 17, 13, 0.82));
+      backdrop-filter: blur(18px);
     }
 
     .main-header h3 {
@@ -430,6 +478,7 @@
       color: var(--muted);
       font-size: 13px;
       line-height: 1.6;
+      max-width: 720px;
     }
 
     .timestamp {
@@ -440,23 +489,25 @@
     }
 
     .content {
-      padding: 20px 24px 24px;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
+      padding: 20px 24px 28px;
+      display: flex;
+      flex-direction: column;
       gap: 18px;
       min-width: 0;
-      overflow: auto;
+      min-height: auto;
+      overflow: visible;
     }
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
       gap: 12px;
     }
 
     .stat-card {
-      padding: 16px;
+      padding: 18px;
       min-width: 0;
+      box-shadow: var(--shadow-soft);
     }
 
     .stat-card .label {
@@ -468,7 +519,7 @@
     }
 
     .stat-card .value {
-      font-size: 18px;
+      font-size: 22px;
       font-weight: 700;
       color: var(--ink);
       overflow: hidden;
@@ -488,17 +539,42 @@
       grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
       gap: 18px;
       min-width: 0;
+      align-items: start;
+    }
+
+    .overview-grid {
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+    }
+
+    .activity-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
     }
 
     .panel {
       min-width: 0;
+      min-height: 0;
       border-radius: 18px;
-      background: var(--panel-2);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0)), var(--panel-2);
       border: 1px solid var(--border);
       padding: 18px;
       display: flex;
       flex-direction: column;
       gap: 16px;
+      box-shadow: var(--shadow-soft);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(7, 193, 96, 0.45), rgba(78, 161, 255, 0.24), transparent);
+      pointer-events: none;
     }
 
     .panel-header {
@@ -509,7 +585,7 @@
     }
 
     .panel-title {
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 700;
     }
 
@@ -527,8 +603,9 @@
     }
 
     .metric {
-      padding: 14px;
+      padding: 15px;
       min-width: 0;
+      min-height: 88px;
     }
 
     .metric .metric-label {
@@ -543,13 +620,13 @@
       font-family: var(--mono);
       font-size: 12px;
       line-height: 1.7;
-      color: var(--text);
+      color: var(--muted-strong);
       word-break: break-word;
     }
 
     .log-box {
-      min-height: 360px;
-      max-height: 420px;
+      min-height: 280px;
+      max-height: 520px;
       overflow: auto;
       border-radius: 16px;
       padding: 16px;
@@ -580,6 +657,59 @@
 
     .pill strong { color: var(--ink); }
 
+    .activity-grid .panel {
+      height: 100%;
+    }
+
+    .status-rail {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .status-compact {
+      border-radius: 16px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)), var(--panel-4);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .status-compact .label {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .status-compact .value {
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .status-compact .sub {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      font-family: var(--mono);
+      word-break: break-word;
+    }
+
+    .model-row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .model-row .select-input {
+      flex: 1;
+      min-width: 0;
+    }
+
     @media (max-width: 980px) {
       body {
         overflow: auto;
@@ -593,8 +723,10 @@
       }
 
       .stats-grid,
+      .status-rail,
       .details-grid,
-      .panel-grid {
+      .panel-grid,
+      .activity-grid {
         grid-template-columns: 1fr;
       }
 
@@ -642,8 +774,13 @@
         font-size: 20px;
       }
 
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
       .dir-row,
       .action-row,
+      .model-row,
       .toolbar,
       .message-meta {
         flex-direction: column;
@@ -754,7 +891,59 @@
           </article>
         </section>
 
-        <section class="panel-grid">
+        <section class="status-rail">
+          <article class="status-compact">
+            <div class="label">Current Model</div>
+            <div class="value" id="active-model">-</div>
+            <div class="sub" id="session-resume-status">-</div>
+          </article>
+          <article class="status-compact">
+            <div class="label">Configured Model</div>
+            <div class="value" id="configured-model">-</div>
+            <div class="sub">桌面端默认会写回到 config 与当前 session</div>
+          </article>
+          <article class="status-compact">
+            <div class="label">Claude Session</div>
+            <div class="value" id="session-state-compact">-</div>
+            <div class="sub" id="sdk-session-id-compact">-</div>
+          </article>
+          <article class="status-compact">
+            <div class="label">Permission</div>
+            <div class="value" id="permission-mode-compact">-</div>
+            <div class="sub" id="dangerous-skip-status-compact">-</div>
+          </article>
+        </section>
+
+        <section class="activity-grid">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Live Message Feed</div>
+                <div class="panel-subtitle">消息流和日志固定在同一屏左右并排，长对话直接在这里滚，不用再拖到最下面。</div>
+              </div>
+            </div>
+            <div class="message-stream no-drag" id="message-stream">
+              <div class="hint">正在等待消息流...</div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Recent Logs</div>
+                <div class="panel-subtitle">最近 120 行桥接日志，和消息流并排放，排障不用来回找。</div>
+              </div>
+              <div class="toolbar no-drag">
+                <button class="secondary" id="refresh-logs-btn">刷新</button>
+                <button class="ghost" id="open-log-dir-btn">打开日志目录</button>
+              </div>
+            </div>
+            <div class="value-box" id="log-file" style="font-family: var(--mono); font-size: 12px;">-</div>
+            <pre class="log-box no-drag" id="log-box">正在读取日志...</pre>
+          </article>
+        </section>
+
+        <section class="panel-grid overview-grid">
           <article class="panel">
             <div class="panel-header">
               <div>
@@ -785,6 +974,10 @@
                 <div class="metric-label">Claude CWD</div>
                 <div class="metric-value" id="claude-working-directory">-</div>
               </div>
+                <div class="metric">
+                  <div class="metric-label">CWD Binding</div>
+                  <div class="metric-value" id="cwd-binding-status">-</div>
+                </div>
               <div class="metric">
                 <div class="metric-label">Last Incoming</div>
                 <div class="metric-value" id="last-incoming">-</div>
@@ -804,10 +997,26 @@
             <div class="panel-header">
               <div>
                 <div class="panel-title">Claude Controls</div>
-                <div class="panel-subtitle">查看当前 Claude 会话工作目录、权限模式，并处理待审批工具调用。</div>
+                <div class="panel-subtitle">当前模型、切换入口、权限模式和待审批工具都集中在这里。</div>
               </div>
             </div>
             <div class="details-grid">
+              <div class="metric">
+                <div class="metric-label">Model Switch</div>
+                <div class="control-stack no-drag">
+                  <div class="model-row">
+                    <input id="model-input" class="select-input" list="model-suggestions" placeholder="default 或自定义模型名" />
+                    <button class="secondary" id="save-model-btn">保存模型</button>
+                  </div>
+                  <datalist id="model-suggestions">
+                    <option value="default"></option>
+                    <option value="claude-sonnet-4-6"></option>
+                    <option value="claude-opus-4-1"></option>
+                    <option value="claude-haiku-3-5"></option>
+                  </datalist>
+                  <div class="hint">保存后会同步更新当前 session 与全局 config，并清掉旧 session id，下一次请求用新模型重新起会话。</div>
+                </div>
+              </div>
               <div class="metric">
                 <div class="metric-label">Permission Mode</div>
                 <div class="control-stack no-drag">
@@ -821,6 +1030,14 @@
                   <div class="hint">`bypassPermissions` 会直接跳过工具权限确认。桥接层会自动同时启用 SDK 的 `allowDangerouslySkipPermissions`。只有在你明确接受这个风险时才应该保持这个默认值。</div>
                 </div>
               </div>
+              <div class="metric">
+                <div class="metric-label">Effective Mode</div>
+                <div class="metric-value" id="effective-permission-mode">-</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Dangerous Skip</div>
+                <div class="metric-value" id="dangerous-skip-status">-</div>
+              </div>
               <div class="metric" style="grid-column: 1 / -1;">
                 <div class="metric-label">Pending Tool Permission</div>
                 <div class="metric-value" id="pending-permission">当前没有待审批请求</div>
@@ -832,35 +1049,8 @@
             </div>
           </article>
 
-          <article class="panel">
-            <div class="panel-header">
-              <div>
-                <div class="panel-title">Live Message Feed</div>
-                <div class="panel-subtitle">实时显示微信发来的消息、Claude Code 回复，以及当前桥接状态事件。</div>
-              </div>
-            </div>
-            <div class="message-stream no-drag" id="message-stream">
-              <div class="hint">正在等待消息流...</div>
-            </div>
-          </article>
         </section>
 
-        <section class="panel-grid">
-          <article class="panel">
-            <div class="panel-header">
-              <div>
-                <div class="panel-title">Recent Logs</div>
-                <div class="panel-subtitle">显示最近 120 行桥接日志，便于排查会话过期、daemon 异常或消息收发问题。</div>
-              </div>
-              <div class="toolbar no-drag">
-                <button class="secondary" id="refresh-logs-btn">刷新</button>
-                <button class="ghost" id="open-log-dir-btn">打开日志目录</button>
-              </div>
-            </div>
-            <div class="value-box" id="log-file" style="font-family: var(--mono); font-size: 12px;">-</div>
-            <pre class="log-box no-drag" id="log-box">正在读取日志...</pre>
-          </article>
-        </section>
       </div>
     </main>
   </div>

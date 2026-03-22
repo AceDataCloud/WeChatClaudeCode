@@ -1,11 +1,18 @@
 import { readFileSync, writeFileSync, mkdirSync, chmodSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import { homedir } from "node:os";
+
+export type PermissionMode =
+  | "default"
+  | "acceptEdits"
+  | "plan"
+  | "bypassPermissions";
 
 export interface Config {
   workingDirectory: string;
   model?: string;
-  permissionMode?: "default" | "acceptEdits" | "plan" | "bypassPermissions";
+  permissionMode?: PermissionMode;
+  permissionModeExplicit?: boolean;
 }
 
 const CONFIG_DIR = join(homedir(), ".wechat-claude-code");
@@ -46,6 +53,13 @@ function parseConfigFile(content: string): Config {
           config.permissionMode = value;
         }
         break;
+      case "permissionModeExplicit":
+        if (value === "true") {
+          config.permissionModeExplicit = true;
+        } else if (value === "false") {
+          config.permissionModeExplicit = false;
+        }
+        break;
     }
   }
   return config;
@@ -61,16 +75,37 @@ export function loadConfig(): Config {
   }
 }
 
+export function ensurePermissionModeConfig(config: Config): Config {
+  const normalized: Config = { ...config };
+
+  if (!normalized.permissionMode) {
+    normalized.permissionMode = "bypassPermissions";
+  }
+
+  // Legacy configs predate explicit permission tracking. Treat them as the old
+  // default and migrate them to bypass so startup behavior matches the desktop UI.
+  if (normalized.permissionModeExplicit !== true) {
+    normalized.permissionMode = "bypassPermissions";
+    normalized.permissionModeExplicit = true;
+  }
+
+  return normalized;
+}
+
 export function saveConfig(config: Config): void {
   ensureConfigDir();
+  const normalized = ensurePermissionModeConfig(config);
   const lines: string[] = [];
-  lines.push(`workingDirectory=${config.workingDirectory}`);
-  if (config.model) {
-    lines.push(`model=${config.model}`);
+  lines.push(`workingDirectory=${normalized.workingDirectory}`);
+  if (normalized.model) {
+    lines.push(`model=${normalized.model}`);
   }
-  if (config.permissionMode) {
-    lines.push(`permissionMode=${config.permissionMode}`);
+  if (normalized.permissionMode) {
+    lines.push(`permissionMode=${normalized.permissionMode}`);
   }
+  lines.push(
+    `permissionModeExplicit=${normalized.permissionModeExplicit === true ? "true" : "false"}`,
+  );
   writeFileSync(CONFIG_PATH, lines.join("\n") + "\n", "utf-8");
   chmodSync(CONFIG_PATH, 0o600);
 }

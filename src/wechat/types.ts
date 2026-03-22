@@ -1,4 +1,4 @@
-// WeChat Work (企业微信) protocol type definitions
+// WeCom protocol type definitions.
 // Extracted from the ClawBot WeChat plugin API
 
 // ── Enums ──────────────────────────────────────────────────────────────────
