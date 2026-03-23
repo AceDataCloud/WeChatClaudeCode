@@ -7,9 +7,18 @@
   "scripts": {
     "build": "tsc",
     "postinstall": "npm run build",
+    "prepare": "husky",
     "start": "node dist/main.js",
     "dev": "tsc --watch",
-    "test": "node --test dist/tests/*.test.js",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "check": "npm run typecheck && npm run lint && npm run test",
     "setup": "node dist/main.js setup",
     "daemon": "bash scripts/daemon.sh",
     "electron:build": "tsc -p tsconfig.electron.json",
@@ -21,11 +30,30 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
+    "@eslint/js": "^9.36.0",
     "@types/node": "^22.0.0",
     "@types/qrcode": "^1.5.6",
     "electron": "^33.0.0",
     "electron-builder": "^25.0.0",
-    "typescript": "^5.7.0"
+    "eslint": "^9.36.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
+    "prettier": "^3.6.2",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.44.1",
+    "vitest": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4"
+  },
+  "lint-staged": {
+    "*.{ts,js,mjs,cjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "keywords": [
     "wechat",

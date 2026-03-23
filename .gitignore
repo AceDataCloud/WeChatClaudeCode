@@ -4,3 +4,4 @@ dist/
 .env
 dist-electron/
 build/
+coverage/

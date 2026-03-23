@@ -44,6 +44,27 @@ npm run electron:dev
 - `npm run build`: Compile all TypeScript sources (Node.js + Electron).
 - `npm run electron:dev`: Build and run the Electron app in development mode.
 - `npm run electron:pack`: Build distributable packages with `electron-builder`.
+- `npm run typecheck`: Run TypeScript checks for both CLI and Electron code.
+- `npm run lint`: Run ESLint checks.
+- `npm run lint:fix`: Auto-fix lint issues when possible.
+- `npm run format`: Format files using Prettier.
+- `npm run format:check`: Verify formatting without changing files.
+- `npm run test`: Run unit tests with Vitest.
+- `npm run test:coverage`: Run tests with coverage report.
+- `npm run check`: Run `typecheck + lint + test` in one command.
+
+## Engineering Baseline
+
+This project now includes a standard engineering toolchain:
+
+- **ESLint** (`eslint.config.mjs`) for code quality checks.
+- **Prettier** (`.prettierrc.json`) for consistent formatting.
+- **Vitest** (`vitest.config.ts`) for unit testing.
+- **Husky + lint-staged** for local Git hooks:
+  - `pre-commit`: runs `lint-staged` on staged files.
+  - `pre-push`: runs `npm run test`.
+- **CI quality gate** (`.github/workflows/quality.yml`):
+  - Runs `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test` on PR/push.
 
 ## CI Release Workflow
 
