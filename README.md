@@ -1,30 +1,21 @@
 # WeChat Claude Code Bridge
 
-Chat with Claude Code directly from WeChat.
-
-Desktop App Screenshot:
+Chat with Claude Code directly from WeChat using the Electron desktop app.
 
 [![WeChat Claude Code Desktop App](https://cdn.acedata.cloud/70c7f31d1b.png)](https://cdn.acedata.cloud/70c7f31d1b.png)
 
-This project includes:
-
-- A CLI setup and daemon workflow for account binding and message polling.
-- An Electron desktop app for QR login, runtime status, logs, and permission approval.
-- A bridge layer that forwards WeChat text/image messages to Claude Code.
-
 ## Features
 
-- WeChat account binding via QR code.
+- QR code login in the desktop app.
 - Message bridge: text and image input to Claude Code.
-- Runtime permission approval flow (`y/yes` and `n/no`).
-- Session controls (`/help`, `/clear`, `/status`, `/model`, `/skills`).
-- Launchd-based daemon management on macOS.
-- Electron tray app for status, logs, and quick actions.
+- Runtime permission approval (`y/yes` and `n/no`).
+- Session controls (`/help`, `/clear`, `/status`, `/model`).
+- System tray for status, logs, and quick actions.
 
 ## Requirements
 
 - Node.js 18+
-- macOS (daemon script uses launchd)
+- macOS, Windows, or Linux
 - A personal WeChat account
 - Claude Code SDK support (`@anthropic-ai/claude-agent-sdk`)
 
@@ -38,48 +29,20 @@ The `postinstall` script compiles TypeScript automatically.
 
 ## Quick Start
 
-### 1. Build
-
-```bash
-npm run build
-npm run electron:build
-```
-
-### 2. Bind WeChat Account
-
-```bash
-npm run setup
-```
-
-This opens a QR code image. Scan it with WeChat to bind your account.
-
-### 3. Start Background Bridge
-
-```bash
-npm run daemon -- start
-```
-
-Check status and logs:
-
-```bash
-npm run daemon -- status
-npm run daemon -- logs
-```
-
-### 4. Launch Desktop App (Optional)
+1. **Build and launch the desktop app:**
 
 ```bash
 npm run electron:dev
 ```
 
+2. **Scan QR code** to bind your WeChat account in the app's login dialog.
+
+3. **Start sending messages** to Claude Code from WeChat!
+
 ## Available Scripts
 
-- `npm run build`: Compile main TypeScript sources.
-- `npm run start`: Run the compiled CLI entry.
-- `npm run setup`: Run interactive setup and account binding.
-- `npm run daemon -- <start|stop|restart|status|logs>`: Manage launchd daemon.
-- `npm run electron:build`: Compile Electron process sources.
-- `npm run electron:dev`: Build and run Electron app.
+- `npm run build`: Compile all TypeScript sources (Node.js + Electron).
+- `npm run electron:dev`: Build and run the Electron app in development mode.
 - `npm run electron:pack`: Build distributable packages with `electron-builder`.
 
 ## CI Release Workflow
@@ -107,14 +70,12 @@ After the workflow completes, the GitHub Release will contain the generated inst
 
 ## WeChat Commands
 
-Send these commands in WeChat chat:
+Available slash commands:
 
 - `/help`: Show command help.
 - `/clear`: Clear current Claude session.
 - `/status`: Show session status.
 - `/model <name>`: Switch Claude model for the current session.
-- `/skills`: List installed skills.
-- `/<skill> [args]`: Trigger an installed skill.
 
 ## Data Directory
 
@@ -131,13 +92,11 @@ Runtime data is stored under `~/.wechat-claude-code/`:
 ```text
 wechat-claude-code/
 ├── electron/               # Electron main/preload/renderer
-├── scripts/                # Daemon management scripts
 ├── src/
-│   ├── claude/             # Claude SDK wrappers and skill scanning
+│   ├── claude/             # Claude SDK wrappers
 │   ├── commands/           # Slash command router and handlers
 │   ├── wechat/             # WeChat API/auth/media/message modules
-│   ├── daemon.ts           # Background bridge runtime
-│   └── main.ts             # CLI entry (setup/start)
+│   └── config.ts           # Configuration
 ├── dist/                   # Compiled Node.js output
 ├── dist-electron/          # Compiled Electron output
 └── package.json
@@ -145,10 +104,9 @@ wechat-claude-code/
 
 ## Troubleshooting
 
-- If setup fails, rerun `npm run setup` to refresh QR binding.
-- If daemon is offline, run `npm run daemon -- restart`.
+- If login fails, check your QR code scanner and ensure the app is up to date.
 - If permissions appear stuck, reply `y` or `n` in WeChat within 60 seconds.
-- If Electron does not show updated state, restart with `npm run electron:dev`.
+- If the app doesn't reflect changes, restart it with `npm run electron:dev`.
 
 ## License
 
