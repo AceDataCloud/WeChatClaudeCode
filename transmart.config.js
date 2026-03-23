@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   baseLocale: 'zh-CN',
   locales: ['en', 'de', 'pt', 'es', 'fr', 'zh-TW', 'it', 'ko', 'ja', 'ru', 'ar'],
   localePath: 'src/i18n/locales',

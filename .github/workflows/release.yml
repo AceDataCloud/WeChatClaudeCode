@@ -21,6 +21,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
+      sha: ${{ steps.release_commit.outputs.sha }}
 
     steps:
       - name: Checkout
@@ -56,9 +57,11 @@ jobs:
         run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
 
       - name: Commit version bump
+        id: release_commit
         run: |
           git add package.json package-lock.json
           git commit -m "chore(release): ${{ steps.version.outputs.tag }} [skip ci]"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Create tag
         run: git tag "${{ steps.version.outputs.tag }}"
@@ -91,7 +94,8 @@ jobs:
       - name: Checkout tagged release
         uses: actions/checkout@v5
         with:
-          ref: ${{ needs.version.outputs.tag }}
+          ref: ${{ needs.version.outputs.sha }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -158,7 +162,8 @@ jobs:
       - name: Checkout tagged release
         uses: actions/checkout@v5
         with:
-          ref: ${{ needs.version.outputs.tag }}
+          ref: ${{ needs.version.outputs.sha }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
