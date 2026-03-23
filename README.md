@@ -71,8 +71,17 @@ This project now includes a standard engineering toolchain:
 
 This project now includes GitHub Actions release automation at `.github/workflows/release.yml`.
 
-- Trigger by tag push: push a tag like `v1.0.1` to automatically build installers and publish a GitHub Release.
-- Trigger manually: run the `Build and Release Desktop Apps` workflow from Actions; `release_tag` is optional. If omitted, CI auto-generates a tag like `v0.0.0-manual-<run>-<attempt>`.
+- Trigger: every push to `main` automatically creates a release.
+- Version scheme: `YYYY.M.D-RUN_NUMBER`, for example `2026.3.23-142`.
+- Workflow behavior:
+  - bumps `package.json` + `package-lock.json` to the computed version
+  - commits the version bump back to `main`
+  - creates tag `vYYYY.M.D-RUN_NUMBER`
+  - builds desktop installers
+  - publishes a GitHub Release
+  - publishes the npm package
+- Required secret: `NPM_TOKEN` with publish permission for the target npm package.
+- Note: npm publish will only succeed if the package name `wechat-claude-code` is available to your npm account, or if you later move to a scoped package name.
 
 Build matrix outputs:
 
@@ -80,14 +89,7 @@ Build matrix outputs:
 - macOS universal installer (`.dmg`, supports Intel + Apple Silicon)
 - Linux x64 package (`.AppImage`)
 
-### Tag-based Release Example
-
-```bash
-git tag v1.0.1
-git push origin v1.0.1
-```
-
-After the workflow completes, the GitHub Release will contain the generated installers.
+After the workflow completes, the GitHub Release will contain the generated installers and npm will receive the same version.
 
 ## WeChat Commands
 
