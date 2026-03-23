@@ -50,13 +50,12 @@ npm run electron:dev
 This project now includes GitHub Actions release automation at `.github/workflows/release.yml`.
 
 - Trigger by tag push: push a tag like `v1.0.1` to automatically build installers and publish a GitHub Release.
-- Trigger manually: run the `Build and Release Desktop Apps` workflow from Actions and optionally fill `release_tag`.
+- Trigger manually: run the `Build and Release Desktop Apps` workflow from Actions; `release_tag` is optional. If omitted, CI auto-generates a tag like `v0.0.0-manual-<run>-<attempt>`.
 
 Build matrix outputs:
 
 - Windows x64 installer (`.exe` via NSIS)
-- macOS Intel x64 installer (`.dmg`)
-- macOS Apple Silicon arm64 installer (`.dmg`)
+- macOS universal installer (`.dmg`, supports Intel + Apple Silicon)
 - Linux x64 package (`.AppImage`)
 
 ### Tag-based Release Example

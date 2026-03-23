@@ -14,6 +14,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     name: Build (${{ matrix.label }})
@@ -26,13 +29,9 @@ jobs:
             os: windows-latest
             build_command: npx electron-builder --publish never --win nsis --x64
             artifact_glob: build/*.exe
-          - label: macos-intel-x64
-            os: macos-13
-            build_command: npx electron-builder --publish never --mac dmg --x64
-            artifact_glob: build/*.dmg
-          - label: macos-apple-silicon-arm64
-            os: macos-14
-            build_command: npx electron-builder --publish never --mac dmg --arm64
+          - label: macos-universal
+            os: macos-latest
+            build_command: npx electron-builder --publish never --mac dmg --universal
             artifact_glob: build/*.dmg
           - label: linux-x64
             os: ubuntu-latest
@@ -45,10 +44,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -66,7 +65,7 @@ jobs:
         run: ${{ matrix.build_command }}
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.label }}
           path: |
@@ -79,11 +78,11 @@ jobs:
     name: Publish GitHub Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.release_tag != ''
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Download all build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: release-assets
 
@@ -93,8 +92,10 @@ jobs:
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             tag="${GITHUB_REF#refs/tags/}"
-          else
+          elif [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
             tag="${{ github.event.inputs.release_tag }}"
+          else
+            tag="v0.0.0-manual-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
           fi
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
 
@@ -103,6 +104,7 @@ jobs:
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
           name: Release ${{ steps.meta.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           generate_release_notes: true
           files: |
             release-assets/**/*.exe
