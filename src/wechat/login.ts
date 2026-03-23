@@ -44,7 +44,7 @@ export async function startQrLogin(): Promise<{ qrcodeUrl: string; qrcodeId: str
 
   return {
     qrcodeUrl: data.qrcode_img_content,
-    qrcodeId: data.qrcode,
+    qrcodeId: data.qrcode
   };
 }
 
@@ -54,7 +54,7 @@ export async function startQrLogin(): Promise<{ qrcodeUrl: string; qrcodeId: str
  * Returns the full AccountData on success.
  */
 export async function waitForQrScan(qrcodeId: string): Promise<AccountData> {
-  let currentQrcodeId = qrcodeId;
+  const currentQrcodeId = qrcodeId;
 
   while (true) {
     const url = `${QR_STATUS_URL}?qrcode=${currentQrcodeId}`;
@@ -99,7 +99,7 @@ export async function waitForQrScan(qrcodeId: string): Promise<AccountData> {
           accountId: data.ilink_bot_id,
           baseUrl: data.baseurl || DEFAULT_BASE_URL,
           userId: data.ilink_user_id,
-          createdAt: new Date().toISOString(),
+          createdAt: new Date().toISOString()
         };
 
         saveAccount(accountData);

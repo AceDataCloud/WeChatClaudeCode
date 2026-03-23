@@ -1,0 +1,245 @@
+{
+  "app": {
+    "title": "WeChat Claude Code"
+  },
+  "common": {
+    "dash": "-",
+    "none": "None",
+    "defaultModel": "Default",
+    "idle": "idle",
+    "notStarted": "Not started yet",
+    "running": "Running",
+    "stopped": "Stopped",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "startUsing": "Start Using",
+    "starting": "Starting...",
+    "refresh": "Refresh",
+    "open": "Open",
+    "select": "Select",
+    "change": "Change",
+    "save": "Save",
+    "allow": "Allow",
+    "deny": "Deny"
+  },
+  "commands": {
+    "helpText": "Available commands:\n\n  /help           Show help\n  /clear          Clear the current session\n  /model <name>   Switch the Claude model\n  /status         Show the current session status\n\nSend plain text to chat with Claude Code.",
+    "clearSuccess": "✅ Session cleared. The next message will start a new session.",
+    "modelUsage": "Usage: /model <model-name>\nExample: /model claude-sonnet-4-6",
+    "modelUpdated": "✅ Model switched to: {model}",
+    "statusTitle": "📊 Session Status",
+    "statusWorkingDirectory": "Working Directory: {value}",
+    "statusModel": "Model: {value}",
+    "statusSessionId": "Session ID: {value}",
+    "statusState": "State: {value}",
+    "unknownCommand": "Unknown command: /{command}"
+  },
+  "daemon": {
+    "permissionTimeout": "⏰ Permission request timed out and was denied automatically.",
+    "processingClear": "⏳ The previous message is still being processed. Clear the session later.",
+    "processingGeneral": "⏳ The previous message is still being processed. Please wait...",
+    "permissionAllowed": "✅ Allowed",
+    "permissionDenied": "❌ Denied",
+    "permissionAwaitingReply": "Waiting for permission approval. Reply with y or n.",
+    "unsupportedMessage": "This message type is not supported yet. Please send text or an image.",
+    "defaultImagePrompt": "Please analyze this image",
+    "emptyResponse": "(Claude returned an empty response)",
+    "resultError": "⚠️ Error: {error}",
+    "processingError": "⚠️ Failed to process the message: {error}"
+  },
+  "cli": {
+    "setupRunning": "Running setup...\n",
+    "qrOpened": "Opened the QR code image. Please scan it with WeChat:",
+    "imagePath": "Image path: {path}\n",
+    "waitingScan": "Waiting for the QR scan...",
+    "boundSuccess": "✅ Bound successfully!",
+    "qrExpired": "⚠️ The QR code expired. Refreshing...\n",
+    "promptWorkingDirectory": "Enter the working directory",
+    "daemonCommand": "Run npm run daemon -- start to launch the service",
+    "noAccount": "No account found. Run node dist/main.js setup first.",
+    "sessionExpired": "⚠️ The WeChat session expired. Run setup again and scan the QR code.",
+    "shuttingDown": "Shutting down...",
+    "daemonStarted": "Started (account: {accountId})",
+    "setupFailed": "Setup failed:",
+    "startFailed": "Startup failed:"
+  },
+  "electron": {
+    "windowTitle": "WeChat Claude Code",
+    "qr": {
+      "fetching": "Fetching QR code...",
+      "scanPrompt": "Scan the QR code above with WeChat",
+      "boundSuccess": "✅ Bound successfully!",
+      "expiredRefreshing": "The QR code expired. Refreshing...",
+      "error": "Error: {error}"
+    },
+    "logs": {
+      "empty": "No logs yet",
+      "emptyFile": "No log file yet",
+      "readFailed": "Failed to read logs: {error}"
+    },
+    "cwd": {
+      "locked": "Locked to the working directory selected in the UI. The daemon will override the session cwd on startup.",
+      "mismatch": "The current Claude cwd differs from the UI directory. It will be overridden on the next startup."
+    },
+    "dialog": {
+      "selectDirectory": "Select Working Directory"
+    },
+    "error": {
+      "noAccount": "No account found",
+      "unsupportedPermissionMode": "Unsupported permission mode",
+      "noPendingPermission": "There is no pending permission request",
+      "expiredPermissionRequest": "The permission request has expired",
+      "sessionExpired": "The WeChat session expired. Please sign in again by scanning the QR code."
+    },
+    "system": {
+      "directoryConfirmed": "Working directory confirmed. Starting the bridge: {path}",
+      "permissionModeUpdated": "Permission mode switched to {mode}",
+      "modelUpdated": "Claude model switched to {model}. The next request will start a new session with the new model.",
+      "toolPermissionResolved": "{action} tool permission: {toolName}",
+      "workingDirectoryUpdated": "Working directory updated to {path}",
+      "reloginTriggered": "Triggered the re-login flow",
+      "bridgeStarted": "Bridge started. Working directory: {path}",
+      "permissionRequested": "Claude is requesting tool permission: {toolName}",
+      "claudeToolPermissionResolved": "{action} Claude tool permission: {toolName}"
+    },
+    "notification": {
+      "sessionExpiredTitle": "WeChat Session Expired",
+      "sessionExpiredBody": "Sign in again to keep using the bridge",
+      "serviceCrashedTitle": "Service Crashed",
+      "serviceCrashedBody": "Trying to restart...",
+      "workingDirectoryUpdatedTitle": "Working Directory Updated"
+    },
+    "tray": {
+      "tooltip": "WeChat Claude Code\nAccount: {accountId}",
+      "connectedLabel": "✅ Connected ({accountId}...)",
+      "directoryLabel": "📁 {path}",
+      "openMainWindow": "Open Main Window",
+      "hideToTray": "Hide to Tray",
+      "changeWorkingDirectory": "Change Working Directory...",
+      "openWorkingDirectory": "Open Working Directory",
+      "relogin": "Sign In Again (switch account or renew session)",
+      "quit": "Quit"
+    }
+  },
+  "renderer": {
+    "locale": {
+      "label": "UI Language"
+    },
+    "brand": {
+      "subtitle": "Turn your local Claude Code runtime into a desktop bridge that can be reached from WeChat."
+    },
+    "hero": {
+      "eyebrow": "Desktop Bridge",
+      "title": "Scan, connect, and stay resident in the background.",
+      "description": "This is no longer a script shell hiding in the tray. It now behaves like a real desktop console, with connection state, runtime health, and recent logs visible at a glance."
+    },
+    "status": {
+      "initializing": "Initializing...",
+      "connected": "The desktop bridge is connected and running in the background",
+      "scanned": "Scan succeeded. Pick a working directory and click Start Using",
+      "loadingQr": "Fetching QR code..."
+    },
+    "qr": {
+      "title": "Scan to Bind",
+      "hint": "For the first run, scan directly with WeChat. Expired QR codes refresh automatically.",
+      "imageAlt": "Login QR code"
+    },
+    "setup": {
+      "workingDirectory": "Working Directory",
+      "hint": "Once started, the bridge daemon keeps running in the background. Closing the window only hides it and does not exit the app."
+    },
+    "connected": {
+      "currentConnection": "Current Connection",
+      "currentDirectory": "Current Directory",
+      "openDirectory": "Open Directory",
+      "scanAgain": "Scan Again"
+    },
+    "dashboard": {
+      "title": "Runtime Console",
+      "subtitle": "Inspect daemon health, current session state, recent messages and replies, and the persisted logs.",
+      "lastRefresh": "Refreshed at {time}",
+      "daemonStartedAt": "Started at {time}",
+      "noActiveSession": "No active SDK session",
+      "resumeReady": "The current Claude session can be reused",
+      "resumeReset": "The next request will start a new session",
+      "healthSessionExpired": "Session Expired",
+      "healthAttention": "Attention Needed",
+      "healthHealthy": "Healthy",
+      "noRecentError": "No recent error",
+      "noRecentErrors": "No recent errors",
+      "dangerousEnabled": "Enabled through bypassPermissions + allowDangerouslySkipPermissions",
+      "dangerousDisabled": "Disabled",
+      "dangerousCompactOn": "dangerous skip on",
+      "dangerousCompactOff": "dangerous skip off",
+      "permissionSummary": "Permission: {mode}{suffix}",
+      "dangerousSuffix": " · dangerous skip on",
+      "pendingPermissionEmpty": "There is no pending permission request"
+    },
+    "stats": {
+      "daemon": "Daemon",
+      "session": "Session",
+      "model": "Model",
+      "health": "Health",
+      "currentModel": "Current Model",
+      "configuredModel": "Configured Model",
+      "configuredModelHint": "Desktop changes are written back to both the config and the current session by default",
+      "claudeSession": "Claude Session",
+      "permission": "Permission"
+    },
+    "feed": {
+      "title": "Live Message Feed",
+      "subtitle": "Messages and logs stay side by side on one screen, so long conversations can scroll here without forcing you to jump to the bottom.",
+      "waiting": "Waiting for the message feed...",
+      "empty": "No live messages yet. Once a WeChat message arrives, it will appear here.",
+      "incoming": "WeChat Incoming",
+      "reply": "Claude Reply",
+      "system": "Bridge Event",
+      "error": "Bridge Error"
+    },
+    "logs": {
+      "title": "Recent Logs",
+      "subtitle": "The latest 120 bridge log lines stay next to the message feed so debugging does not require bouncing around.",
+      "openDirectory": "Open Log Directory",
+      "loading": "Reading logs..."
+    },
+    "details": {
+      "title": "Bridge Details",
+      "subtitle": "Current account info, the WeChat bot endpoint, and the latest message and session state.",
+      "accountId": "Account ID",
+      "userId": "User ID",
+      "baseUrl": "Base URL",
+      "workingDirectory": "Working Directory",
+      "claudeCwd": "Claude CWD",
+      "cwdBinding": "CWD Binding",
+      "lastIncoming": "Last Incoming",
+      "lastReply": "Last Reply",
+      "lastError": "Last Error"
+    },
+    "controls": {
+      "title": "Claude Controls",
+      "subtitle": "Current model, the switch entry point, permission mode, and pending tool approvals are all managed here.",
+      "modelSwitch": "Model Switch",
+      "modelPlaceholder": "default or a custom model name",
+      "saveModel": "Save Model",
+      "modelHint": "Saving updates both the current session and the global config, clears the old session id, and starts the next request with a new session.",
+      "permissionMode": "Permission Mode",
+      "savePermissionMode": "Save Permission Mode",
+      "permissionHint": "`bypassPermissions` skips tool approval entirely. The bridge also enables the SDK's `allowDangerouslySkipPermissions`. Keep this default only if you knowingly accept that risk.",
+      "effectiveMode": "Effective Mode",
+      "dangerousSkip": "Dangerous Skip",
+      "pendingToolPermission": "Pending Tool Permission"
+    },
+    "actions": {
+      "permissionModeUpdateFailed": "Failed to update the permission mode: {error}",
+      "permissionModeUpdated": "Permission mode updated to {mode}",
+      "modelUpdateFailed": "Failed to update the model: {error}",
+      "modelUpdated": "Model updated to {model}",
+      "approveFailed": "Failed to allow the request: {error}",
+      "approveSuccess": "Allowed the current tool permission",
+      "denyFailed": "Failed to deny the request: {error}",
+      "denySuccess": "Denied the current tool permission",
+      "startFailed": "Failed to start: {error}",
+      "preloadMissing": "Renderer initialization failed: preload did not load"
+    }
+  }
+}

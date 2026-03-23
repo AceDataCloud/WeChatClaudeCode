@@ -1,8 +1,4 @@
-import type {
-  GetUpdatesResp,
-  SendMessageReq,
-  GetUploadUrlResp,
-} from './types.js';
+import type { GetUpdatesResp, SendMessageReq, GetUploadUrlResp } from './types.js';
 import { logger } from '../logger.js';
 
 /** Generate a random uint32 and return its base64 representation. */
@@ -10,7 +6,7 @@ function generateUin(): string {
   const buf = new Uint8Array(4);
   crypto.getRandomValues(buf);
   const view = new DataView(buf.buffer);
-  const uint32 = view.getUint32(0, false); // big-endian
+  view.getUint32(0, false); // force a consistent 4-byte buffer read before encoding
   return Buffer.from(buf).toString('base64');
 }
 
@@ -28,17 +24,13 @@ export class WeChatApi {
   private headers(): Record<string, string> {
     return {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.token}`,
-      'AuthorizationType': 'ilink_bot_token',
-      'X-WECHAT-UIN': this.uin,
+      Authorization: `Bearer ${this.token}`,
+      AuthorizationType: 'ilink_bot_token',
+      'X-WECHAT-UIN': this.uin
     };
   }
 
-  private async request<T>(
-    path: string,
-    body: unknown,
-    timeoutMs: number = 15_000,
-  ): Promise<T> {
+  private async request<T>(path: string, body: unknown, timeoutMs: number = 15_000): Promise<T> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -51,7 +43,7 @@ export class WeChatApi {
         method: 'POST',
         headers: this.headers(),
         body: JSON.stringify(body),
-        signal: controller.signal,
+        signal: controller.signal
       });
 
       if (!res.ok) {
@@ -77,7 +69,7 @@ export class WeChatApi {
     return this.request<GetUpdatesResp>(
       'ilink/bot/getupdates',
       buf ? { get_updates_buf: buf } : {},
-      35_000,
+      35_000
     );
   }
 
@@ -90,11 +82,12 @@ export class WeChatApi {
   async getUploadUrl(
     fileType: string,
     fileSize: number,
-    fileName: string,
+    fileName: string
   ): Promise<GetUploadUrlResp> {
-    return this.request<GetUploadUrlResp>(
-      'ilink/bot/getuploadurl',
-      { file_type: fileType, file_size: fileSize, file_name: fileName },
-    );
+    return this.request<GetUploadUrlResp>('ilink/bot/getuploadurl', {
+      file_type: fileType,
+      file_size: fileSize,
+      file_name: fileName
+    });
   }
 }

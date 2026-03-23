@@ -1,0 +1,245 @@
+{
+  "app": {
+    "title": "WeChat Claude Code"
+  },
+  "common": {
+    "dash": "-",
+    "none": "无",
+    "defaultModel": "默认",
+    "idle": "idle",
+    "notStarted": "尚未启动",
+    "running": "运行中",
+    "stopped": "已停止",
+    "connected": "已连接",
+    "disconnected": "未连接",
+    "startUsing": "开始使用",
+    "starting": "启动中...",
+    "refresh": "刷新",
+    "open": "打开",
+    "select": "选择",
+    "change": "更改",
+    "save": "保存",
+    "allow": "允许",
+    "deny": "拒绝"
+  },
+  "commands": {
+    "helpText": "可用命令：\n\n  /help           显示帮助\n  /clear          清除当前会话\n  /model <名称>   切换 Claude 模型\n  /status         查看当前会话状态\n\n直接输入文字即可与 Claude Code 对话",
+    "clearSuccess": "✅ 会话已清除，下次消息将开始新会话。",
+    "modelUsage": "用法: /model <模型名称>\n例: /model claude-sonnet-4-6",
+    "modelUpdated": "✅ 模型已切换为: {model}",
+    "statusTitle": "📊 会话状态",
+    "statusWorkingDirectory": "工作目录: {value}",
+    "statusModel": "模型: {value}",
+    "statusSessionId": "会话ID: {value}",
+    "statusState": "状态: {value}",
+    "unknownCommand": "未知命令: /{command}"
+  },
+  "daemon": {
+    "permissionTimeout": "⏰ 权限请求超时，已自动拒绝。",
+    "processingClear": "⏳ 正在处理上一条消息，请稍后再清除会话",
+    "processingGeneral": "⏳ 正在处理上一条消息，请稍后...",
+    "permissionAllowed": "✅ 已允许",
+    "permissionDenied": "❌ 已拒绝",
+    "permissionAwaitingReply": "正在等待权限审批，请回复 y 或 n。",
+    "unsupportedMessage": "暂不支持此类型消息，请发送文字或图片",
+    "defaultImagePrompt": "请分析这张图片",
+    "emptyResponse": "(Claude 返回了空响应)",
+    "resultError": "⚠️ 错误: {error}",
+    "processingError": "⚠️ 处理消息时出错: {error}"
+  },
+  "cli": {
+    "setupRunning": "正在设置...\n",
+    "qrOpened": "已打开二维码图片，请用微信扫描：",
+    "imagePath": "图片路径: {path}\n",
+    "waitingScan": "等待扫码绑定...",
+    "boundSuccess": "✅ 绑定成功!",
+    "qrExpired": "⚠️ 二维码已过期，正在刷新...\n",
+    "promptWorkingDirectory": "请输入工作目录",
+    "daemonCommand": "运行 npm run daemon -- start 启动服务",
+    "noAccount": "未找到账号，请先运行 node dist/main.js setup",
+    "sessionExpired": "⚠️ 微信会话已过期，请重新运行 setup 扫码绑定",
+    "shuttingDown": "正在关闭...",
+    "daemonStarted": "已启动 (账号: {accountId})",
+    "setupFailed": "设置失败:",
+    "startFailed": "启动失败:"
+  },
+  "electron": {
+    "windowTitle": "WeChat Claude Code",
+    "qr": {
+      "fetching": "正在获取二维码...",
+      "scanPrompt": "请用微信扫描上方二维码",
+      "boundSuccess": "✅ 绑定成功！",
+      "expiredRefreshing": "二维码已过期，正在刷新...",
+      "error": "错误: {error}"
+    },
+    "logs": {
+      "empty": "暂无日志",
+      "emptyFile": "暂无日志文件",
+      "readFailed": "读取日志失败: {error}"
+    },
+    "cwd": {
+      "locked": "已锁定到 UI 选择目录，daemon 启动时会强制覆盖 session cwd",
+      "mismatch": "当前 Claude cwd 与 UI 目录不一致，下一次启动会重新覆盖"
+    },
+    "dialog": {
+      "selectDirectory": "选择工作目录"
+    },
+    "error": {
+      "noAccount": "未找到账号",
+      "unsupportedPermissionMode": "不支持的权限模式",
+      "noPendingPermission": "当前没有待处理的权限请求",
+      "expiredPermissionRequest": "权限请求已失效",
+      "sessionExpired": "WeChat 会话已过期，需要重新扫码登录"
+    },
+    "system": {
+      "directoryConfirmed": "目录已确认，开始启动桥接：{path}",
+      "permissionModeUpdated": "权限模式已切换为 {mode}",
+      "modelUpdated": "Claude 模型已切换为 {model}，下次请求会以新模型启动新 session",
+      "toolPermissionResolved": "{action}工具权限：{toolName}",
+      "workingDirectoryUpdated": "工作目录已更新为 {path}",
+      "reloginTriggered": "已触发重新扫码流程",
+      "bridgeStarted": "桥接已启动，工作目录：{path}",
+      "permissionRequested": "Claude 请求工具权限：{toolName}",
+      "claudeToolPermissionResolved": "{action} Claude 工具权限：{toolName}"
+    },
+    "notification": {
+      "sessionExpiredTitle": "WeChat 会话已过期",
+      "sessionExpiredBody": "请重新登录以继续使用",
+      "serviceCrashedTitle": "服务崩溃",
+      "serviceCrashedBody": "正在尝试重启...",
+      "workingDirectoryUpdatedTitle": "工作目录已更新"
+    },
+    "tray": {
+      "tooltip": "WeChat Claude Code\n账号: {accountId}",
+      "connectedLabel": "✅ 已连接 ({accountId}...)",
+      "directoryLabel": "📁 {path}",
+      "openMainWindow": "打开主窗口",
+      "hideToTray": "隐藏到托盘",
+      "changeWorkingDirectory": "更改工作目录...",
+      "openWorkingDirectory": "打开工作目录",
+      "relogin": "重新登录（换号或失效）",
+      "quit": "退出"
+    }
+  },
+  "renderer": {
+    "locale": {
+      "label": "界面语言"
+    },
+    "brand": {
+      "subtitle": "把本地 Claude Code 变成一个可通过微信远程调用的桌面代理。"
+    },
+    "hero": {
+      "eyebrow": "Desktop Bridge",
+      "title": "扫码、连上、后台常驻。",
+      "description": "这不是一个藏在托盘里的脚本壳。现在它会像真正的桌面控制台一样，把连接状态、运行情况和最近日志都直接呈现出来。"
+    },
+    "status": {
+      "initializing": "正在初始化...",
+      "connected": "桌面桥接已连接并在后台运行",
+      "scanned": "扫码成功，选择目录后点击开始使用",
+      "loadingQr": "正在获取二维码..."
+    },
+    "qr": {
+      "title": "扫码绑定",
+      "hint": "第一次使用时请直接用微信扫码。二维码过期会自动刷新。",
+      "imageAlt": "登录二维码"
+    },
+    "setup": {
+      "workingDirectory": "工作目录",
+      "hint": "开始后，桥接守护进程会在后台运行。关闭窗口只会隐藏，不会退出。"
+    },
+    "connected": {
+      "currentConnection": "当前连接",
+      "currentDirectory": "当前目录",
+      "openDirectory": "打开目录",
+      "scanAgain": "重新扫码"
+    },
+    "dashboard": {
+      "title": "运行控制台",
+      "subtitle": "查看 daemon 是否正常、当前会话状态、最近消息与回复，以及落盘日志。",
+      "lastRefresh": "刷新于 {time}",
+      "daemonStartedAt": "启动于 {time}",
+      "noActiveSession": "无活跃 SDK Session",
+      "resumeReady": "可继续沿用当前 Claude session",
+      "resumeReset": "下次请求会新建 session",
+      "healthSessionExpired": "会话已过期",
+      "healthAttention": "需要关注",
+      "healthHealthy": "健康",
+      "noRecentError": "最近无错误",
+      "noRecentErrors": "最近没有错误",
+      "dangerousEnabled": "已通过 bypassPermissions + allowDangerouslySkipPermissions 启用",
+      "dangerousDisabled": "未启用",
+      "dangerousCompactOn": "高危跳过已开启",
+      "dangerousCompactOff": "高危跳过已关闭",
+      "permissionSummary": "权限: {mode}{suffix}",
+      "dangerousSuffix": " · 高危跳过已开启",
+      "pendingPermissionEmpty": "当前没有待审批请求"
+    },
+    "stats": {
+      "daemon": "Daemon",
+      "session": "Session",
+      "model": "Model",
+      "health": "Health",
+      "currentModel": "Current Model",
+      "configuredModel": "Configured Model",
+      "configuredModelHint": "桌面端默认会写回到 config 与当前 session",
+      "claudeSession": "Claude Session",
+      "permission": "Permission"
+    },
+    "feed": {
+      "title": "实时消息流",
+      "subtitle": "消息流和日志固定在同一屏左右并排，长对话直接在这里滚，不用再拖到最下面。",
+      "waiting": "正在等待消息流...",
+      "empty": "还没有实时消息，等微信发一条消息过来这里就会出现。",
+      "incoming": "微信消息",
+      "reply": "Claude 回复",
+      "system": "桥接事件",
+      "error": "桥接错误"
+    },
+    "logs": {
+      "title": "最近日志",
+      "subtitle": "最近 120 行桥接日志，和消息流并排放，排障不用来回找。",
+      "openDirectory": "打开日志目录",
+      "loading": "正在读取日志..."
+    },
+    "details": {
+      "title": "桥接详情",
+      "subtitle": "当前账号、微信 bot 地址、最近收发消息与会话信息。",
+      "accountId": "Account ID",
+      "userId": "User ID",
+      "baseUrl": "Base URL",
+      "workingDirectory": "Working Directory",
+      "claudeCwd": "Claude CWD",
+      "cwdBinding": "CWD 绑定状态",
+      "lastIncoming": "最近收到",
+      "lastReply": "最近回复",
+      "lastError": "最近错误"
+    },
+    "controls": {
+      "title": "Claude 控制台",
+      "subtitle": "当前模型、切换入口、权限模式和待审批工具都集中在这里。",
+      "modelSwitch": "模型切换",
+      "modelPlaceholder": "default 或自定义模型名",
+      "saveModel": "保存模型",
+      "modelHint": "保存后会同步更新当前 session 与全局 config，并清掉旧 session id，下一次请求用新模型重新起会话。",
+      "permissionMode": "权限模式",
+      "savePermissionMode": "保存权限模式",
+      "permissionHint": "`bypassPermissions` 会直接跳过工具权限确认。桥接层会自动同时启用 SDK 的 `allowDangerouslySkipPermissions`。只有在你明确接受这个风险时才应该保持这个默认值。",
+      "effectiveMode": "实际生效模式",
+      "dangerousSkip": "Dangerous Skip",
+      "pendingToolPermission": "待审批工具权限"
+    },
+    "actions": {
+      "permissionModeUpdateFailed": "权限模式更新失败: {error}",
+      "permissionModeUpdated": "权限模式已更新为 {mode}",
+      "modelUpdateFailed": "模型更新失败: {error}",
+      "modelUpdated": "模型已更新为 {model}",
+      "approveFailed": "允许失败: {error}",
+      "approveSuccess": "已允许当前工具权限",
+      "denyFailed": "拒绝失败: {error}",
+      "denySuccess": "已拒绝当前工具权限",
+      "startFailed": "启动失败: {error}",
+      "preloadMissing": "Renderer 初始化失败：preload 未加载"
+    }
+  }
+}

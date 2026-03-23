@@ -12,6 +12,7 @@
     "electron/preload.cjs",
     "electron/renderer/**",
     "scripts/**",
+    "src/i18n/locales/**",
     "LICENSE",
     "README.md"
   ],
@@ -23,7 +24,7 @@
     "url": "https://github.com/AceDataCloud/WeChatClaudeCode.git"
   },
   "scripts": {
-    "build": "tsc && tsc -p tsconfig.electron.json",
+    "build": "tsc && tsc -p tsconfig.electron.json && node scripts/copy-i18n.mjs",
     "postinstall": "npm run build",
     "prepare": "husky",
     "start": "node dist/main.js",
@@ -36,6 +37,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "translate": "transmart",
     "check": "npm run typecheck && npm run lint && npm run test",
     "setup": "node dist/main.js setup",
     "daemon": "bash scripts/daemon.sh",
@@ -47,6 +49,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@transmart/cli": "^0.5.2",
     "@types/node": "^22.0.0",
     "@types/qrcode": "^1.5.6",
     "electron": "^33.0.0",

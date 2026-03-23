@@ -16,7 +16,6 @@ export interface MonitorCallbacks {
 
 export function createMonitor(api: WeChatApi, callbacks: MonitorCallbacks) {
   const controller = new AbortController();
-  let stopped = false;
   const recentMsgIds = new Set<number>();
   const MAX_MSG_IDS = 1000;
 
@@ -88,13 +87,13 @@ export function createMonitor(api: WeChatApi, callbacks: MonitorCallbacks) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         logger.error('Monitor error', { error: errorMsg, consecutiveFailures });
 
-        const backoff = consecutiveFailures >= BACKOFF_THRESHOLD ? BACKOFF_LONG_MS : BACKOFF_SHORT_MS;
+        const backoff =
+          consecutiveFailures >= BACKOFF_THRESHOLD ? BACKOFF_LONG_MS : BACKOFF_SHORT_MS;
         logger.info(`Backing off ${backoff}ms`, { consecutiveFailures });
         await sleep(backoff, controller.signal);
       }
     }
 
-    stopped = true;
     logger.info('Monitor stopped');
   }
 
@@ -116,9 +115,13 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
     }
 
     const timer = setTimeout(resolve, ms);
-    signal?.addEventListener('abort', () => {
-      clearTimeout(timer);
-      resolve();
-    }, { once: true });
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      { once: true }
+    );
   });
 }

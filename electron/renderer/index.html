@@ -237,6 +237,21 @@
       line-height: 1.5;
     }
 
+    .locale-row {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .locale-row label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
     .hero {
       position: relative;
       z-index: 1;
@@ -800,60 +815,65 @@
   <div class="shell">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-badge"><img src="../assets/icon.png" alt="WeChat Claude Code" /></div>
+        <div class="brand-badge"><img src="../assets/icon.png" alt="WeChat Claude Code" data-i18n="app.title" data-i18n-attr="alt" /></div>
         <div>
-          <h1>WeChat Claude Code</h1>
-          <p>把本地 Claude Code 变成一个可通过微信远程调用的桌面代理。</p>
+          <h1 data-i18n="app.title">WeChat Claude Code</h1>
+          <p data-i18n="renderer.brand.subtitle">把本地 Claude Code 变成一个可通过微信远程调用的桌面代理。</p>
         </div>
       </div>
 
       <div class="hero">
-        <div class="eyebrow">Desktop Bridge</div>
-        <h2>扫码、连上、后台常驻。</h2>
-        <p>这不是一个藏在托盘里的脚本壳。现在它会像真正的桌面控制台一样，把连接状态、运行情况和最近日志都直接呈现出来。</p>
+        <div class="eyebrow" data-i18n="renderer.hero.eyebrow">Desktop Bridge</div>
+        <h2 data-i18n="renderer.hero.title">扫码、连上、后台常驻。</h2>
+        <p data-i18n="renderer.hero.description">这不是一个藏在托盘里的脚本壳。现在它会像真正的桌面控制台一样，把连接状态、运行情况和最近日志都直接呈现出来。</p>
         <div id="status-chip" class="status-chip loading">
           <span class="status-dot"></span>
-          <span id="status-text">正在初始化...</span>
+          <span id="status-text" data-i18n="renderer.status.initializing">正在初始化...</span>
         </div>
       </div>
 
+      <div class="locale-row no-drag">
+        <label for="locale-select" data-i18n="renderer.locale.label">界面语言</label>
+        <select id="locale-select" class="select-input"></select>
+      </div>
+
       <section id="qr-card" class="qr-card">
-        <div class="field-label">扫码绑定</div>
+        <div class="field-label" data-i18n="renderer.qr.title">扫码绑定</div>
         <div id="qr-image">
           <span class="placeholder">⬡</span>
         </div>
-        <div class="hint">第一次使用时请直接用微信扫码。二维码过期会自动刷新。</div>
+        <div class="hint" data-i18n="renderer.qr.hint">第一次使用时请直接用微信扫码。二维码过期会自动刷新。</div>
       </section>
 
       <section id="setup-card" class="setup-card hidden no-drag">
         <div>
-          <div class="field-label">工作目录</div>
+          <div class="field-label" data-i18n="renderer.setup.workingDirectory">工作目录</div>
           <div class="dir-row" style="margin-top:8px;">
             <div id="dir-display" class="dir-input">~/</div>
-            <button class="secondary" id="pick-dir-btn">选择</button>
+            <button class="secondary" id="pick-dir-btn" data-i18n="common.select">选择</button>
           </div>
         </div>
         <div class="action-row">
-          <button class="primary" id="start-btn">开始使用</button>
+          <button class="primary" id="start-btn" data-i18n="common.startUsing">开始使用</button>
         </div>
-        <div class="hint">开始后，桥接守护进程会在后台运行。关闭窗口只会隐藏，不会退出。</div>
+        <div class="hint" data-i18n="renderer.setup.hint">开始后，桥接守护进程会在后台运行。关闭窗口只会隐藏，不会退出。</div>
       </section>
 
       <section id="connected-card" class="connected-card hidden no-drag">
         <div>
-          <div class="field-label">当前连接</div>
+          <div class="field-label" data-i18n="renderer.connected.currentConnection">当前连接</div>
           <div class="value-box" id="connected-account" style="margin-top:8px;">-</div>
         </div>
         <div>
-          <div class="field-label">当前目录</div>
+          <div class="field-label" data-i18n="renderer.connected.currentDirectory">当前目录</div>
           <div class="dir-row" style="margin-top:8px;">
             <div class="dir-input" id="connected-dir">-</div>
-            <button class="secondary" id="change-dir-btn">更改</button>
+            <button class="secondary" id="change-dir-btn" data-i18n="common.change">更改</button>
           </div>
         </div>
         <div class="action-row">
-          <button class="secondary" id="open-dir-btn">打开目录</button>
-          <button class="ghost" id="relogin-btn">重新扫码</button>
+          <button class="secondary" id="open-dir-btn" data-i18n="renderer.connected.openDirectory">打开目录</button>
+          <button class="ghost" id="relogin-btn" data-i18n="renderer.connected.scanAgain">重新扫码</button>
         </div>
       </section>
     </aside>
@@ -861,8 +881,8 @@
     <main class="main">
       <div class="main-header">
         <div>
-          <h3>运行控制台</h3>
-          <p>查看 daemon 是否正常、当前会话状态、最近消息与回复，以及落盘日志。</p>
+          <h3 data-i18n="renderer.dashboard.title">运行控制台</h3>
+          <p data-i18n="renderer.dashboard.subtitle">查看 daemon 是否正常、当前会话状态、最近消息与回复，以及落盘日志。</p>
         </div>
         <div class="timestamp no-drag" id="last-refresh">--</div>
       </div>
@@ -870,22 +890,22 @@
       <div class="content">
         <section class="stats-grid">
           <article class="stat-card">
-            <div class="label">Daemon</div>
+            <div class="label" data-i18n="renderer.stats.daemon">Daemon</div>
             <div class="value" id="daemon-running">-</div>
             <div class="sub" id="daemon-started-at">-</div>
           </article>
           <article class="stat-card">
-            <div class="label">Session</div>
+            <div class="label" data-i18n="renderer.stats.session">Session</div>
             <div class="value" id="session-state">-</div>
             <div class="sub" id="permission-mode">-</div>
           </article>
           <article class="stat-card">
-            <div class="label">Model</div>
+            <div class="label" data-i18n="renderer.stats.model">Model</div>
             <div class="value" id="session-model">-</div>
             <div class="sub" id="sdk-session-id">-</div>
           </article>
           <article class="stat-card">
-            <div class="label">Health</div>
+            <div class="label" data-i18n="renderer.stats.health">Health</div>
             <div class="value" id="health-state">-</div>
             <div class="sub" id="last-error-at">-</div>
           </article>
@@ -893,22 +913,22 @@
 
         <section class="status-rail">
           <article class="status-compact">
-            <div class="label">Current Model</div>
+            <div class="label" data-i18n="renderer.stats.currentModel">Current Model</div>
             <div class="value" id="active-model">-</div>
             <div class="sub" id="session-resume-status">-</div>
           </article>
           <article class="status-compact">
-            <div class="label">Configured Model</div>
+            <div class="label" data-i18n="renderer.stats.configuredModel">Configured Model</div>
             <div class="value" id="configured-model">-</div>
-            <div class="sub">桌面端默认会写回到 config 与当前 session</div>
+            <div class="sub" data-i18n="renderer.stats.configuredModelHint">桌面端默认会写回到 config 与当前 session</div>
           </article>
           <article class="status-compact">
-            <div class="label">Claude Session</div>
+            <div class="label" data-i18n="renderer.stats.claudeSession">Claude Session</div>
             <div class="value" id="session-state-compact">-</div>
             <div class="sub" id="sdk-session-id-compact">-</div>
           </article>
           <article class="status-compact">
-            <div class="label">Permission</div>
+            <div class="label" data-i18n="renderer.stats.permission">Permission</div>
             <div class="value" id="permission-mode-compact">-</div>
             <div class="sub" id="dangerous-skip-status-compact">-</div>
           </article>
@@ -918,28 +938,28 @@
           <article class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Live Message Feed</div>
-                <div class="panel-subtitle">消息流和日志固定在同一屏左右并排，长对话直接在这里滚，不用再拖到最下面。</div>
+                <div class="panel-title" data-i18n="renderer.feed.title">实时消息流</div>
+                <div class="panel-subtitle" data-i18n="renderer.feed.subtitle">消息流和日志固定在同一屏左右并排，长对话直接在这里滚，不用再拖到最下面。</div>
               </div>
             </div>
             <div class="message-stream no-drag" id="message-stream">
-              <div class="hint">正在等待消息流...</div>
+              <div class="hint" data-i18n="renderer.feed.waiting">正在等待消息流...</div>
             </div>
           </article>
 
           <article class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Recent Logs</div>
-                <div class="panel-subtitle">最近 120 行桥接日志，和消息流并排放，排障不用来回找。</div>
+                <div class="panel-title" data-i18n="renderer.logs.title">最近日志</div>
+                <div class="panel-subtitle" data-i18n="renderer.logs.subtitle">最近 120 行桥接日志，和消息流并排放，排障不用来回找。</div>
               </div>
               <div class="toolbar no-drag">
-                <button class="secondary" id="refresh-logs-btn">刷新</button>
-                <button class="ghost" id="open-log-dir-btn">打开日志目录</button>
+                <button class="secondary" id="refresh-logs-btn" data-i18n="common.refresh">刷新</button>
+                <button class="ghost" id="open-log-dir-btn" data-i18n="renderer.logs.openDirectory">打开日志目录</button>
               </div>
             </div>
             <div class="value-box" id="log-file" style="font-family: var(--mono); font-size: 12px;">-</div>
-            <pre class="log-box no-drag" id="log-box">正在读取日志...</pre>
+            <pre class="log-box no-drag" id="log-box" data-i18n="renderer.logs.loading">正在读取日志...</pre>
           </article>
         </section>
 
@@ -947,47 +967,47 @@
           <article class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Bridge Details</div>
-                <div class="panel-subtitle">当前账号、微信 bot 地址、最近收发消息与会话信息。</div>
+                <div class="panel-title" data-i18n="renderer.details.title">桥接详情</div>
+                <div class="panel-subtitle" data-i18n="renderer.details.subtitle">当前账号、微信 bot 地址、最近收发消息与会话信息。</div>
               </div>
               <div class="pill"><strong id="connected-pill">未连接</strong></div>
             </div>
 
             <div class="details-grid">
               <div class="metric">
-                <div class="metric-label">Account ID</div>
+                <div class="metric-label" data-i18n="renderer.details.accountId">Account ID</div>
                 <div class="metric-value" id="account-id">-</div>
               </div>
               <div class="metric">
-                <div class="metric-label">User ID</div>
+                <div class="metric-label" data-i18n="renderer.details.userId">User ID</div>
                 <div class="metric-value" id="user-id">-</div>
               </div>
               <div class="metric">
-                <div class="metric-label">Base URL</div>
+                <div class="metric-label" data-i18n="renderer.details.baseUrl">Base URL</div>
                 <div class="metric-value" id="base-url">-</div>
               </div>
               <div class="metric">
-                <div class="metric-label">Working Directory</div>
+                <div class="metric-label" data-i18n="renderer.details.workingDirectory">Working Directory</div>
                 <div class="metric-value" id="working-directory">-</div>
               </div>
               <div class="metric">
-                <div class="metric-label">Claude CWD</div>
+                <div class="metric-label" data-i18n="renderer.details.claudeCwd">Claude CWD</div>
                 <div class="metric-value" id="claude-working-directory">-</div>
               </div>
                 <div class="metric">
-                  <div class="metric-label">CWD Binding</div>
+                  <div class="metric-label" data-i18n="renderer.details.cwdBinding">CWD Binding</div>
                   <div class="metric-value" id="cwd-binding-status">-</div>
                 </div>
               <div class="metric">
-                <div class="metric-label">Last Incoming</div>
+                <div class="metric-label" data-i18n="renderer.details.lastIncoming">最近收到</div>
                 <div class="metric-value" id="last-incoming">-</div>
               </div>
               <div class="metric">
-                <div class="metric-label">Last Reply</div>
+                <div class="metric-label" data-i18n="renderer.details.lastReply">最近回复</div>
                 <div class="metric-value" id="last-reply">-</div>
               </div>
               <div class="metric" style="grid-column: 1 / -1;">
-                <div class="metric-label">Last Error</div>
+                <div class="metric-label" data-i18n="renderer.details.lastError">最近错误</div>
                 <div class="metric-value" id="last-error">-</div>
               </div>
             </div>
@@ -996,17 +1016,17 @@
           <article class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Claude Controls</div>
-                <div class="panel-subtitle">当前模型、切换入口、权限模式和待审批工具都集中在这里。</div>
+                <div class="panel-title" data-i18n="renderer.controls.title">Claude 控制台</div>
+                <div class="panel-subtitle" data-i18n="renderer.controls.subtitle">当前模型、切换入口、权限模式和待审批工具都集中在这里。</div>
               </div>
             </div>
             <div class="details-grid">
               <div class="metric">
-                <div class="metric-label">Model Switch</div>
+                <div class="metric-label" data-i18n="renderer.controls.modelSwitch">模型切换</div>
                 <div class="control-stack no-drag">
                   <div class="model-row">
-                    <input id="model-input" class="select-input" list="model-suggestions" placeholder="default 或自定义模型名" />
-                    <button class="secondary" id="save-model-btn">保存模型</button>
+                    <input id="model-input" class="select-input" list="model-suggestions" placeholder="default 或自定义模型名" data-i18n="renderer.controls.modelPlaceholder" data-i18n-attr="placeholder" />
+                    <button class="secondary" id="save-model-btn" data-i18n="renderer.controls.saveModel">保存模型</button>
                   </div>
                   <datalist id="model-suggestions">
                     <option value="default"></option>
@@ -1014,11 +1034,11 @@
                     <option value="claude-opus-4-1"></option>
                     <option value="claude-haiku-3-5"></option>
                   </datalist>
-                  <div class="hint">保存后会同步更新当前 session 与全局 config，并清掉旧 session id，下一次请求用新模型重新起会话。</div>
+                  <div class="hint" data-i18n="renderer.controls.modelHint">保存后会同步更新当前 session 与全局 config，并清掉旧 session id，下一次请求用新模型重新起会话。</div>
                 </div>
               </div>
               <div class="metric">
-                <div class="metric-label">Permission Mode</div>
+                <div class="metric-label" data-i18n="renderer.controls.permissionMode">权限模式</div>
                 <div class="control-stack no-drag">
                   <select id="permission-mode-select" class="select-input">
                     <option value="bypassPermissions">bypassPermissions</option>
@@ -1026,24 +1046,24 @@
                     <option value="default">default</option>
                     <option value="plan">plan</option>
                   </select>
-                  <button class="secondary" id="save-permission-mode-btn">保存权限模式</button>
-                  <div class="hint">`bypassPermissions` 会直接跳过工具权限确认。桥接层会自动同时启用 SDK 的 `allowDangerouslySkipPermissions`。只有在你明确接受这个风险时才应该保持这个默认值。</div>
+                  <button class="secondary" id="save-permission-mode-btn" data-i18n="renderer.controls.savePermissionMode">保存权限模式</button>
+                  <div class="hint" data-i18n="renderer.controls.permissionHint">`bypassPermissions` 会直接跳过工具权限确认。桥接层会自动同时启用 SDK 的 `allowDangerouslySkipPermissions`。只有在你明确接受这个风险时才应该保持这个默认值。</div>
                 </div>
               </div>
               <div class="metric">
-                <div class="metric-label">Effective Mode</div>
+                <div class="metric-label" data-i18n="renderer.controls.effectiveMode">实际生效模式</div>
                 <div class="metric-value" id="effective-permission-mode">-</div>
               </div>
               <div class="metric">
-                <div class="metric-label">Dangerous Skip</div>
+                <div class="metric-label" data-i18n="renderer.controls.dangerousSkip">Dangerous Skip</div>
                 <div class="metric-value" id="dangerous-skip-status">-</div>
               </div>
               <div class="metric" style="grid-column: 1 / -1;">
-                <div class="metric-label">Pending Tool Permission</div>
+                <div class="metric-label" data-i18n="renderer.controls.pendingToolPermission">待审批工具权限</div>
                 <div class="metric-value" id="pending-permission">当前没有待审批请求</div>
                 <div class="action-row no-drag" style="margin-top: 12px;">
-                  <button class="primary" id="approve-permission-btn">允许</button>
-                  <button class="ghost" id="deny-permission-btn">拒绝</button>
+                  <button class="primary" id="approve-permission-btn" data-i18n="common.allow">允许</button>
+                  <button class="ghost" id="deny-permission-btn" data-i18n="common.deny">拒绝</button>
                 </div>
               </div>
             </div>

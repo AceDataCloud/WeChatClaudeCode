@@ -1,0 +1,76 @@
+name: Translate Locales
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/i18n/locales/zh-CN.json'
+      - 'transmart.config.js'
+      - '.github/workflows/translate.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  translate:
+    name: Auto-translate
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run automatic translation
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: npm run translate
+
+      - name: Create translation PR
+        uses: peter-evans/create-pull-request@v7
+        id: cpr
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'ci: auto-translate i18n from zh-CN'
+          title: 'ci: auto-translate i18n from zh-CN'
+          body: |
+            Auto-generated i18n translation updates from zh-CN source changes.
+          branch: ci/auto-translate-i18n
+          delete-branch: true
+          add-paths: |
+            src/i18n/locales/
+          labels: |
+            i18n
+            automated-pr
+
+      - name: Auto-approve translation PR
+        if: ${{ steps.cpr.outputs.pull-request-number }}
+        env:
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          gh pr review ${{ steps.cpr.outputs.pull-request-number }} --approve --repo ${{ github.repository }}
+
+      - name: Enable auto-merge for translation PR
+        if: ${{ steps.cpr.outputs.pull-request-number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge ${{ steps.cpr.outputs.pull-request-number }} --auto --squash --repo ${{ github.repository }}

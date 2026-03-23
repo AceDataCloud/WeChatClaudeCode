@@ -7,6 +7,7 @@ files:
   - dist-electron/**
   - electron/preload.cjs
   - electron/renderer/**
+  - dist-electron/src/i18n/locales/**
   - node_modules/**
   - package.json
 
@@ -19,8 +20,8 @@ mac:
   target:
     - target: dmg
       arch:
-        - arm64    # Apple Silicon
-        - x64      # Intel
+        - arm64 # Apple Silicon
+        - x64 # Intel
   icon: electron/assets/icon.icns
 
 dmg:

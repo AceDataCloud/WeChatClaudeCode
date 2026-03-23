@@ -11,6 +11,8 @@ Chat with Claude Code directly from WeChat using the Electron desktop app.
 - Runtime permission approval (`y/yes` and `n/no`).
 - Session controls (`/help`, `/clear`, `/status`, `/model`).
 - System tray for status, logs, and quick actions.
+- Built-in localization with persisted UI language selection.
+- Automated locale generation pipeline based on `transmart`.
 
 ## Requirements
 
@@ -51,6 +53,7 @@ npm run dev
 - `npm run format:check`: Verify formatting without changing files.
 - `npm run test`: Run unit tests with Vitest.
 - `npm run test:coverage`: Run tests with coverage report.
+- `npm run translate`: Generate target locale files from `src/i18n/locales/zh-CN.json` using `transmart`.
 - `npm run check`: Run `typecheck + lint + test` in one command.
 
 ## Engineering Baseline
@@ -90,6 +93,31 @@ Build matrix outputs:
 - Linux x64 package (`.AppImage`)
 
 After the workflow completes, the GitHub Release will contain the generated installers and npm will receive the same version.
+
+## Localization
+
+UI and runtime strings now live under `src/i18n/locales/`.
+
+- Base locale: `src/i18n/locales/zh-CN.json`
+- Shipped manual locale: `src/i18n/locales/en.json`
+- Runtime locale is persisted in `~/.wechat-claude-code/config.env`
+- The desktop renderer, Electron main process, daemon, CLI setup flow, and slash commands all read from the same message catalog
+
+### Local Translation Workflow
+
+```bash
+npm run translate
+```
+
+This uses `transmart.config.js` and requires `OPENAI_API_KEY` in your shell environment.
+
+### Automatic Translation Workflow
+
+The repository includes `.github/workflows/translate.yml`.
+
+- Trigger: push to `main` when `src/i18n/locales/zh-CN.json` changes
+- Behavior: installs dependencies, runs `npm run translate`, opens a PR with the generated locale updates, auto-approves that PR, and enables squash auto-merge
+- Required secrets: `OPENAI_API_KEY` and `BOT_TOKEN`
 
 ## WeChat Commands
 

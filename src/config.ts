@@ -1,26 +1,25 @@
-import { readFileSync, writeFileSync, mkdirSync, chmodSync } from "node:fs";
-import { join } from "node:path";
-import { homedir } from "node:os";
+import { readFileSync, writeFileSync, mkdirSync, chmodSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
+import { detectSystemLocale, resolveLocale, type AppLocale } from './i18n/index.js';
 
-export type PermissionMode =
-  | "default"
-  | "acceptEdits"
-  | "plan"
-  | "bypassPermissions";
+export type PermissionMode = 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions';
 
 export interface Config {
   workingDirectory: string;
   model?: string;
   permissionMode?: PermissionMode;
   permissionModeExplicit?: boolean;
+  locale?: AppLocale;
 }
 
-const CONFIG_DIR = join(homedir(), ".wechat-claude-code");
-const CONFIG_PATH = join(CONFIG_DIR, "config.env");
+const CONFIG_DIR = join(homedir(), '.wechat-claude-code');
+const CONFIG_PATH = join(CONFIG_DIR, 'config.env');
 
 const DEFAULT_CONFIG: Config = {
   workingDirectory: process.cwd(),
-  permissionMode: "bypassPermissions",
+  permissionMode: 'bypassPermissions',
+  locale: detectSystemLocale()
 };
 
 function ensureConfigDir(): void {
@@ -29,36 +28,39 @@ function ensureConfigDir(): void {
 
 function parseConfigFile(content: string): Config {
   const config: Config = { ...DEFAULT_CONFIG };
-  for (const line of content.split("\n")) {
+  for (const line of content.split('\n')) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIndex = trimmed.indexOf("=");
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIndex = trimmed.indexOf('=');
     if (eqIndex === -1) continue;
     const key = trimmed.slice(0, eqIndex).trim();
     const value = trimmed.slice(eqIndex + 1).trim();
     switch (key) {
-      case "workingDirectory":
+      case 'workingDirectory':
         config.workingDirectory = value;
         break;
-      case "model":
+      case 'model':
         config.model = value;
         break;
-      case "permissionMode":
+      case 'permissionMode':
         if (
-          value === "default" ||
-          value === "acceptEdits" ||
-          value === "plan" ||
-          value === "bypassPermissions"
+          value === 'default' ||
+          value === 'acceptEdits' ||
+          value === 'plan' ||
+          value === 'bypassPermissions'
         ) {
           config.permissionMode = value;
         }
         break;
-      case "permissionModeExplicit":
-        if (value === "true") {
+      case 'permissionModeExplicit':
+        if (value === 'true') {
           config.permissionModeExplicit = true;
-        } else if (value === "false") {
+        } else if (value === 'false') {
           config.permissionModeExplicit = false;
         }
+        break;
+      case 'locale':
+        config.locale = resolveLocale(value);
         break;
     }
   }
@@ -67,7 +69,7 @@ function parseConfigFile(content: string): Config {
 
 export function loadConfig(): Config {
   try {
-    const content = readFileSync(CONFIG_PATH, "utf-8");
+    const content = readFileSync(CONFIG_PATH, 'utf-8');
     return parseConfigFile(content);
   } catch {
     // File does not exist yet — return defaults
@@ -78,14 +80,16 @@ export function loadConfig(): Config {
 export function ensurePermissionModeConfig(config: Config): Config {
   const normalized: Config = { ...config };
 
+  normalized.locale = resolveLocale(normalized.locale ?? detectSystemLocale());
+
   if (!normalized.permissionMode) {
-    normalized.permissionMode = "bypassPermissions";
+    normalized.permissionMode = 'bypassPermissions';
   }
 
   // Legacy configs predate explicit permission tracking. Treat them as the old
   // default and migrate them to bypass so startup behavior matches the desktop UI.
   if (normalized.permissionModeExplicit !== true) {
-    normalized.permissionMode = "bypassPermissions";
+    normalized.permissionMode = 'bypassPermissions';
     normalized.permissionModeExplicit = true;
   }
 
@@ -103,9 +107,12 @@ export function saveConfig(config: Config): void {
   if (normalized.permissionMode) {
     lines.push(`permissionMode=${normalized.permissionMode}`);
   }
+  if (normalized.locale) {
+    lines.push(`locale=${normalized.locale}`);
+  }
   lines.push(
-    `permissionModeExplicit=${normalized.permissionModeExplicit === true ? "true" : "false"}`,
+    `permissionModeExplicit=${normalized.permissionModeExplicit === true ? 'true' : 'false'}`
   );
-  writeFileSync(CONFIG_PATH, lines.join("\n") + "\n", "utf-8");
+  writeFileSync(CONFIG_PATH, lines.join('\n') + '\n', 'utf-8');
   chmodSync(CONFIG_PATH, 0o600);
 }

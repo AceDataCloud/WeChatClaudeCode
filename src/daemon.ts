@@ -5,22 +5,19 @@
  * (CLI) nor electron/main.ts (Electron) need to duplicate this code.
  */
 
-import { WeChatApi } from "./wechat/api.js";
-import { type AccountData } from "./wechat/accounts.js";
-import { createMonitor, type MonitorCallbacks } from "./wechat/monitor.js";
-import { createSender } from "./wechat/send.js";
-import {
-  downloadImage,
-  extractText,
-  extractFirstImageUrl,
-} from "./wechat/media.js";
-import { createSessionStore, type Session } from "./session.js";
-import { createPermissionBroker } from "./permission.js";
-import { routeCommand, type CommandContext } from "./commands/router.js";
-import { claudeQuery, type QueryOptions } from "./claude/provider.js";
-import { type Config } from "./config.js";
-import { logger } from "./logger.js";
-import { MessageType, type WeixinMessage } from "./wechat/types.js";
+import { WeChatApi } from './wechat/api.js';
+import { type AccountData } from './wechat/accounts.js';
+import { createMonitor, type MonitorCallbacks } from './wechat/monitor.js';
+import { createSender } from './wechat/send.js';
+import { downloadImage, extractText, extractFirstImageUrl } from './wechat/media.js';
+import { createSessionStore, type Session } from './session.js';
+import { createPermissionBroker } from './permission.js';
+import { routeCommand, type CommandContext } from './commands/router.js';
+import { claudeQuery, type QueryOptions } from './claude/provider.js';
+import { type Config } from './config.js';
+import { createTranslator } from './i18n/index.js';
+import { logger } from './logger.js';
+import { MessageType, type WeixinMessage } from './wechat/types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -28,10 +25,7 @@ import { MessageType, type WeixinMessage } from "./wechat/types.js";
 
 const MAX_MESSAGE_LENGTH = 2048;
 
-function splitMessage(
-  text: string,
-  maxLen: number = MAX_MESSAGE_LENGTH,
-): string[] {
+function splitMessage(text: string, maxLen: number = MAX_MESSAGE_LENGTH): string[] {
   if (text.length <= maxLen) return [text];
   const chunks: string[] = [];
   let remaining = text;
@@ -40,21 +34,19 @@ function splitMessage(
       chunks.push(remaining);
       break;
     }
-    let splitIdx = remaining.lastIndexOf("\n", maxLen);
+    let splitIdx = remaining.lastIndexOf('\n', maxLen);
     if (splitIdx < maxLen * 0.3) splitIdx = maxLen;
     chunks.push(remaining.slice(0, splitIdx));
-    remaining = remaining.slice(splitIdx).replace(/^\n+/, "");
+    remaining = remaining.slice(splitIdx).replace(/^\n+/, '');
   }
   return chunks;
 }
 
-export function extractTextFromItems(
-  items: NonNullable<WeixinMessage["item_list"]>,
-): string {
+export function extractTextFromItems(items: NonNullable<WeixinMessage['item_list']>): string {
   return items
     .map((item) => extractText(item))
     .filter(Boolean)
-    .join("\n");
+    .join('\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -94,19 +86,20 @@ export interface DaemonHandle {
  */
 export function createDaemon(opts: DaemonOptions): DaemonHandle {
   const { account, config } = opts;
+  const t = createTranslator(config.locale);
 
   const api = new WeChatApi(account.botToken, account.baseUrl);
   const sessionStore = createSessionStore();
   const session: Session = sessionStore.load(account.accountId);
   const sender = createSender(api, account.accountId);
-  const sharedCtx = { lastContextToken: "" };
+  const sharedCtx = { lastContextToken: '' };
 
   const permissionBroker = createPermissionBroker(async () => {
     try {
       await sender.sendText(
-        account.userId ?? "",
+        account.userId ?? '',
         sharedCtx.lastContextToken,
-        "⏰ 权限请求超时，已自动拒绝。",
+        t('daemon.permissionTimeout')
       );
     } catch {}
   });
@@ -122,13 +115,13 @@ export function createDaemon(opts: DaemonOptions): DaemonHandle {
         sender,
         config,
         sharedCtx,
-        opts,
+        opts
       );
     },
     onSessionExpired: () => {
-      logger.warn("WeChat session expired");
+      logger.warn('WeChat session expired');
       opts.onSessionExpired?.();
-    },
+    }
   };
 
   const monitor = createMonitor(api, callbacks);
@@ -137,7 +130,7 @@ export function createDaemon(opts: DaemonOptions): DaemonHandle {
     run: () => monitor.run(),
     stop: () => monitor.stop(),
     resolvePermission: (allowed: boolean) =>
-      permissionBroker.resolvePermission(account.accountId, allowed),
+      permissionBroker.resolvePermission(account.accountId, allowed)
   };
 }
 
@@ -154,74 +147,62 @@ async function handleMessage(
   sender: ReturnType<typeof createSender>,
   config: Config,
   sharedCtx: { lastContextToken: string },
-  opts: DaemonOptions,
+  opts: DaemonOptions
 ): Promise<void> {
+  const t = createTranslator(config.locale);
   if (msg.message_type !== MessageType.USER) return;
   if (!msg.from_user_id || !msg.item_list) return;
 
-  const contextToken = msg.context_token ?? "";
+  const contextToken = msg.context_token ?? '';
   const fromUserId = msg.from_user_id;
   sharedCtx.lastContextToken = contextToken;
 
   const userText = extractTextFromItems(msg.item_list);
   const imageItem = extractFirstImageUrl(msg.item_list);
 
-  logger.info("Handling inbound WeChat message", {
+  logger.info('Handling inbound WeChat message', {
     accountId: account.accountId,
     messageId: msg.message_id,
     fromUserId,
     textLength: userText.length,
     hasImage: !!imageItem,
-    sessionState: session.state,
+    sessionState: session.state
   });
 
   opts.onMessage?.(fromUserId, userText);
 
   // Concurrency guard
-  if (session.state === "processing") {
-    if (userText.startsWith("/clear")) {
-      await sender.sendText(
-        fromUserId,
-        contextToken,
-        "⏳ 正在处理上一条消息，请稍后再清除会话",
-      );
-    } else if (!userText.startsWith("/")) {
-      await sender.sendText(
-        fromUserId,
-        contextToken,
-        "⏳ 正在处理上一条消息，请稍后...",
-      );
+  if (session.state === 'processing') {
+    if (userText.startsWith('/clear')) {
+      await sender.sendText(fromUserId, contextToken, t('daemon.processingClear'));
+    } else if (!userText.startsWith('/')) {
+      await sender.sendText(fromUserId, contextToken, t('daemon.processingGeneral'));
     }
-    if (!userText.startsWith("/status") && !userText.startsWith("/help"))
-      return;
+    if (!userText.startsWith('/status') && !userText.startsWith('/help')) return;
   }
 
   // Permission approval
-  if (session.state === "waiting_permission") {
+  if (session.state === 'waiting_permission') {
     const lower = userText.toLowerCase();
-    logger.info("Received permission reply from WeChat", {
+    logger.info('Received permission reply from WeChat', {
       accountId: account.accountId,
       fromUserId,
-      reply: lower,
+      reply: lower
     });
-    if (lower === "y" || lower === "yes") {
+    if (lower === 'y' || lower === 'yes') {
       permissionBroker.resolvePermission(account.accountId, true);
-      await sender.sendText(fromUserId, contextToken, "✅ 已允许");
-    } else if (lower === "n" || lower === "no") {
+      await sender.sendText(fromUserId, contextToken, t('daemon.permissionAllowed'));
+    } else if (lower === 'n' || lower === 'no') {
       permissionBroker.resolvePermission(account.accountId, false);
-      await sender.sendText(fromUserId, contextToken, "❌ 已拒绝");
+      await sender.sendText(fromUserId, contextToken, t('daemon.permissionDenied'));
     } else {
-      await sender.sendText(
-        fromUserId,
-        contextToken,
-        "正在等待权限审批，请回复 y 或 n。",
-      );
+      await sender.sendText(fromUserId, contextToken, t('daemon.permissionAwaitingReply'));
     }
     return;
   }
 
   // Slash commands
-  if (userText.startsWith("/")) {
+  if (userText.startsWith('/')) {
     const updateSession = (partial: Partial<Session>) => {
       Object.assign(session, partial);
       sessionStore.save(account.accountId, session);
@@ -233,17 +214,18 @@ async function handleMessage(
       updateSession,
       clearSession: () => sessionStore.clear(account.accountId),
       text: userText,
+      locale: config.locale
     };
 
     const result = routeCommand(ctx);
 
-    logger.info("Processed slash command", {
+    logger.info('Processed slash command', {
       accountId: account.accountId,
       fromUserId,
       command: userText.split(/\s+/, 1)[0],
       handled: result.handled,
       hasReply: !!result.reply,
-      hasClaudePrompt: !!result.claudePrompt,
+      hasClaudePrompt: !!result.claudePrompt
     });
 
     if (result.handled && result.reply) {
@@ -264,7 +246,7 @@ async function handleMessage(
         sender,
         config,
         sharedCtx,
-        opts,
+        opts
       );
       return;
     }
@@ -274,16 +256,12 @@ async function handleMessage(
 
   // Plain text / image → Claude
   if (!userText && !imageItem) {
-    logger.warn("Unsupported inbound message payload", {
+    logger.warn('Unsupported inbound message payload', {
       accountId: account.accountId,
       fromUserId,
-      messageId: msg.message_id,
+      messageId: msg.message_id
     });
-    await sender.sendText(
-      fromUserId,
-      contextToken,
-      "暂不支持此类型消息，请发送文字或图片",
-    );
+    await sender.sendText(fromUserId, contextToken, t('daemon.unsupportedMessage'));
     return;
   }
 
@@ -299,7 +277,7 @@ async function handleMessage(
     sender,
     config,
     sharedCtx,
-    opts,
+    opts
   );
 }
 
@@ -315,25 +293,25 @@ async function sendToClaude(
   sender: ReturnType<typeof createSender>,
   config: Config,
   sharedCtx: { lastContextToken: string },
-  opts: DaemonOptions,
+  opts: DaemonOptions
 ): Promise<void> {
-  logger.info("Dispatching message to Claude", {
+  const t = createTranslator(config.locale);
+  logger.info('Dispatching message to Claude', {
     accountId: account.accountId,
     fromUserId,
     textLength: userText.length,
     hasImage: !!imageItem,
-    resumeSessionId: session.sdkSessionId ?? "",
+    resumeSessionId: session.sdkSessionId ?? '',
     workingDirectory: session.workingDirectory || config.workingDirectory,
-    model: session.model || config.model || "default",
-    permissionMode:
-      session.permissionMode ?? config.permissionMode ?? "default",
+    model: session.model || config.model || 'default',
+    permissionMode: session.permissionMode ?? config.permissionMode ?? 'default'
   });
 
-  session.state = "processing";
+  session.state = 'processing';
   sessionStore.save(account.accountId, session);
 
   try {
-    let images: QueryOptions["images"];
+    let images: QueryOptions['images'];
     if (imageItem) {
       const base64DataUri = await downloadImage(imageItem);
       if (base64DataUri) {
@@ -341,33 +319,33 @@ async function sendToClaude(
         if (matches) {
           images = [
             {
-              type: "image",
+              type: 'image',
               source: {
-                type: "base64",
+                type: 'base64',
                 media_type: matches[1],
-                data: matches[2],
-              },
-            },
+                data: matches[2]
+              }
+            }
           ];
         }
       }
     }
 
     const queryOptions: QueryOptions = {
-      prompt: userText || "请分析这张图片",
+      prompt: userText || t('daemon.defaultImagePrompt'),
       cwd: session.workingDirectory || config.workingDirectory,
       resume: session.sdkSessionId,
       model: session.model,
       permissionMode: session.permissionMode ?? config.permissionMode,
       images,
       onPermissionRequest: async (toolName: string, toolInput: string) => {
-        session.state = "waiting_permission";
+        session.state = 'waiting_permission';
         sessionStore.save(account.accountId, session);
 
         const permissionPromise = permissionBroker.createPending(
           account.accountId,
           toolName,
-          toolInput,
+          toolInput
         );
         opts.onPermissionRequest?.(toolName, toolInput);
 
@@ -376,61 +354,61 @@ async function sendToClaude(
           await sender.sendText(
             fromUserId,
             contextToken,
-            permissionBroker.formatPendingMessage(perm),
+            permissionBroker.formatPendingMessage(perm)
           );
         }
 
         const allowed = await permissionPromise;
         opts.onPermissionResolved?.(allowed, toolName);
-        session.state = "processing";
+        session.state = 'processing';
         sessionStore.save(account.accountId, session);
         return allowed;
-      },
+      }
     };
 
     const result = await claudeQuery(queryOptions);
 
-    logger.info("Claude query returned", {
+    logger.info('Claude query returned', {
       accountId: account.accountId,
       fromUserId,
       hasError: !!result.error,
       textLength: result.text.length,
-      sessionId: result.sessionId || "",
+      sessionId: result.sessionId || ''
     });
 
     if (result.error) {
       await sender.sendText(
         fromUserId,
         contextToken,
-        `⚠️ 错误: ${result.error}`,
+        t('daemon.resultError', { error: result.error })
       );
     } else if (result.text) {
       const chunks = splitMessage(result.text);
-      logger.info("Sending Claude reply chunks", {
+      logger.info('Sending Claude reply chunks', {
         accountId: account.accountId,
         fromUserId,
-        chunkCount: chunks.length,
+        chunkCount: chunks.length
       });
       for (const chunk of chunks) {
         await sender.sendText(fromUserId, contextToken, chunk);
         opts.onReply?.(fromUserId, chunk);
       }
     } else {
-      await sender.sendText(fromUserId, contextToken, "(Claude 返回了空响应)");
+      await sender.sendText(fromUserId, contextToken, t('daemon.emptyResponse'));
     }
 
     session.sdkSessionId = result.sessionId || undefined;
-    session.state = "idle";
+    session.state = 'idle';
     sessionStore.save(account.accountId, session);
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    logger.error("Error in sendToClaude", { error: errorMsg });
+    logger.error('Error in sendToClaude', { error: errorMsg });
     await sender.sendText(
       fromUserId,
       contextToken,
-      `⚠️ 处理消息时出错: ${errorMsg}`,
+      t('daemon.processingError', { error: errorMsg })
     );
-    session.state = "idle";
+    session.state = 'idle';
     sessionStore.save(account.accountId, session);
   }
 }

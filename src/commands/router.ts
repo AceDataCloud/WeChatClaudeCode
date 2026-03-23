@@ -1,5 +1,6 @@
 import type { Session } from '../session.js';
 import { logger } from '../logger.js';
+import { createTranslator, type AppLocale } from '../i18n/index.js';
 import { handleHelp, handleClear, handleModel, handleStatus } from './handlers.js';
 
 export interface CommandContext {
@@ -8,6 +9,7 @@ export interface CommandContext {
   updateSession: (partial: Partial<Session>) => void;
   clearSession: () => Session;
   text: string;
+  locale?: AppLocale;
 }
 
 export interface CommandResult {
@@ -27,6 +29,7 @@ export interface CommandResult {
  */
 export function routeCommand(ctx: CommandContext): CommandResult {
   const text = ctx.text.trim();
+  const t = createTranslator(ctx.locale);
 
   if (!text.startsWith('/')) {
     return { handled: false };
@@ -40,7 +43,7 @@ export function routeCommand(ctx: CommandContext): CommandResult {
 
   switch (cmd) {
     case 'help':
-      return handleHelp(args);
+      return handleHelp(args, ctx);
     case 'clear':
       return handleClear(ctx);
     case 'model':
@@ -48,6 +51,6 @@ export function routeCommand(ctx: CommandContext): CommandResult {
     case 'status':
       return handleStatus(ctx);
     default:
-      return { handled: false, reply: `Unknown command: /${cmd}` };
+      return { handled: false, reply: t('commands.unknownCommand', { command: cmd }) };
   }
 }

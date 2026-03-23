@@ -15,28 +15,29 @@ import {
   nativeImage,
   dialog,
   Notification,
-  shell,
-} from "electron";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
-import { homedir } from "os";
+  shell
+} from 'electron';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { homedir } from 'os';
 
-import { loadLatestAccount, type AccountData } from "../src/wechat/accounts.js";
-import { startQrLogin, waitForQrScan } from "../src/wechat/login.js";
+import { loadLatestAccount, type AccountData } from '../src/wechat/accounts.js';
+import { startQrLogin, waitForQrScan } from '../src/wechat/login.js';
 import {
   loadConfig,
   saveConfig,
   ensurePermissionModeConfig,
-  type PermissionMode,
-} from "../src/config.js";
-import { createDaemon, type DaemonHandle } from "../src/daemon.js";
-import { logger } from "../src/logger.js";
-import { createSessionStore } from "../src/session.js";
+  type PermissionMode
+} from '../src/config.js';
+import { createDaemon, type DaemonHandle } from '../src/daemon.js';
+import { createTranslator, getI18nPayload } from '../src/i18n/index.js';
+import { logger } from '../src/logger.js';
+import { createSessionStore } from '../src/session.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const PRELOAD_PATH = join(__dirname, "..", "..", "electron", "preload.cjs");
+const PRELOAD_PATH = join(__dirname, '..', '..', 'electron', 'preload.cjs');
 
 // ---------------------------------------------------------------------------
 // State
@@ -50,10 +51,10 @@ let isQuitting = false;
 let qrLoopRunning = false;
 
 const sessionStore = createSessionStore();
-const DATA_DIR = join(homedir(), ".wechat-claude-code");
-const LOG_DIR = join(DATA_DIR, "logs");
+const DATA_DIR = join(homedir(), '.wechat-claude-code');
+const LOG_DIR = join(DATA_DIR, 'logs');
 const APP_ICON_DATA_URL =
-  "data:image/svg+xml;charset=UTF-8," +
+  'data:image/svg+xml;charset=UTF-8,' +
   encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
       <defs>
@@ -72,28 +73,23 @@ const APP_ICON_DATA_URL =
     </svg>
   `);
 
-const SUGGESTED_MODELS = [
-  "default",
-  "claude-sonnet-4-6",
-  "claude-opus-4-1",
-  "claude-haiku-3-5",
-];
+const SUGGESTED_MODELS = ['default', 'claude-sonnet-4-6', 'claude-opus-4-1', 'claude-haiku-3-5'];
 
 const runtimeState = {
   daemonRunning: false,
   setupRequired: false,
-  startedAt: "",
-  lastIncomingAt: "",
-  lastIncomingFrom: "",
-  lastIncomingText: "",
-  lastReplyAt: "",
-  lastReplyText: "",
-  lastErrorAt: "",
-  lastError: "",
+  startedAt: '',
+  lastIncomingAt: '',
+  lastIncomingFrom: '',
+  lastIncomingText: '',
+  lastReplyAt: '',
+  lastReplyText: '',
+  lastErrorAt: '',
+  lastError: '',
   sessionExpired: false,
-  claudeWorkingDirectory: "",
+  claudeWorkingDirectory: '',
   dangerousPermissionsEnabled: true,
-  cwdBindingStatus: "启动时会以 UI 选择目录覆盖 Claude Session",
+  cwdBindingStatus: '',
   pendingPermission: null as null | {
     toolName: string;
     toolInput: string;
@@ -101,15 +97,29 @@ const runtimeState = {
   },
   recentMessages: [] as Array<{
     id: string;
-    role: "incoming" | "reply" | "system" | "error";
+    role: 'incoming' | 'reply' | 'system' | 'error';
     text: string;
     timestamp: string;
     peer: string;
-  }>,
+  }>
 };
 
+function getConfigState() {
+  return ensurePermissionModeConfig(loadConfig());
+}
+
+function t(key: string, vars?: Record<string, string | number>): string {
+  return createTranslator(getConfigState().locale)(key, vars);
+}
+
+function getPermissionActionLabel(allowed: boolean): string {
+  return allowed ? t('common.allow') : t('common.deny');
+}
+
+runtimeState.cwdBindingStatus = t('electron.cwd.locked');
+
 function pushRecentMessage(entry: {
-  role: "incoming" | "reply" | "system" | "error";
+  role: 'incoming' | 'reply' | 'system' | 'error';
   text: string;
   peer?: string;
 }): void {
@@ -118,7 +128,7 @@ function pushRecentMessage(entry: {
     role: entry.role,
     text: entry.text,
     timestamp: new Date().toISOString(),
-    peer: entry.peer ?? "",
+    peer: entry.peer ?? ''
   });
 
   if (runtimeState.recentMessages.length > 40) {
@@ -134,7 +144,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 }
 
-app.on("second-instance", () => {
+app.on('second-instance', () => {
   // Re-focus the QR window if it's open
   if (qrWindow) {
     if (qrWindow.isMinimized()) qrWindow.restore();
@@ -155,29 +165,29 @@ app.whenReady().then(async () => {
 
   const account = loadLatestAccount();
   if (account) {
-    logger.info("Restoring saved account on app startup", {
-      accountId: account.accountId,
+    logger.info('Restoring saved account on app startup', {
+      accountId: account.accountId
     });
     connectedAccount = account;
     await startDaemon(account);
     setupTray(account);
     sendAppState({
-      mode: "connected",
+      mode: 'connected',
       accountId: account.accountId,
-      workingDirectory: loadConfig().workingDirectory || homedir(),
+      workingDirectory: loadConfig().workingDirectory || homedir()
     });
   } else {
-    logger.info("No saved account found, entering login mode");
-    sendAppState({ mode: "login" });
+    logger.info('No saved account found, entering login mode');
+    sendAppState({ mode: 'login' });
     runQrLoop();
   }
 });
 
-app.on("window-all-closed", () => {
+app.on('window-all-closed', () => {
   // Don't quit when windows are closed — stay alive in the tray
 });
 
-app.on("before-quit", () => {
+app.on('before-quit', () => {
   isQuitting = true;
   daemon?.stop();
 });
@@ -199,68 +209,60 @@ async function createQrWindow(): Promise<void> {
     minWidth: 720,
     minHeight: 620,
     resizable: true,
-    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
-    title: "WeChat Claude Code",
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    title: t('electron.windowTitle'),
     icon: nativeImage.createFromDataURL(APP_ICON_DATA_URL),
     webPreferences: {
       preload: PRELOAD_PATH,
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
-    },
+      sandbox: false
+    }
   });
 
-  logger.info("Creating BrowserWindow", {
+  logger.info('Creating BrowserWindow', {
     preloadPath: PRELOAD_PATH,
-    preloadExists: existsSync(PRELOAD_PATH),
+    preloadExists: existsSync(PRELOAD_PATH)
   });
 
-  qrWindow.webContents.on("did-finish-load", async () => {
-    logger.info("Renderer finished load");
+  qrWindow.webContents.on('did-finish-load', async () => {
+    logger.info('Renderer finished load');
     try {
       const bridgeType = await qrWindow?.webContents.executeJavaScript(
-        "typeof window.electronAPI",
-        true,
+        'typeof window.electronAPI',
+        true
       );
-      logger.info("Renderer bridge status", { bridgeType });
+      logger.info('Renderer bridge status', { bridgeType });
     } catch (error) {
-      logger.error("Failed to inspect renderer bridge", {
-        error: error instanceof Error ? error.message : String(error),
+      logger.error('Failed to inspect renderer bridge', {
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   });
 
-  qrWindow.webContents.on(
-    "did-fail-load",
-    (_event, errorCode, errorDescription, validatedURL) => {
-      logger.error("Renderer failed to load", {
-        errorCode,
-        errorDescription,
-        validatedURL,
-      });
-    },
-  );
-
-  qrWindow.webContents.on(
-    "console-message",
-    (_event, level, message, line, sourceId) => {
-      logger.info("Renderer console", { level, message, line, sourceId });
-    },
-  );
-
-  qrWindow.webContents.on("render-process-gone", (_event, details) => {
-    logger.error("Renderer process gone", details);
+  qrWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    logger.error('Renderer failed to load', {
+      errorCode,
+      errorDescription,
+      validatedURL
+    });
   });
 
-  await qrWindow.loadFile(
-    join(__dirname, "..", "..", "electron", "renderer", "index.html"),
-  );
+  qrWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    logger.info('Renderer console', { level, message, line, sourceId });
+  });
 
-  qrWindow.on("closed", () => {
+  qrWindow.webContents.on('render-process-gone', (_event, details) => {
+    logger.error('Renderer process gone', details);
+  });
+
+  await qrWindow.loadFile(join(__dirname, '..', '..', 'electron', 'renderer', 'index.html'));
+
+  qrWindow.on('closed', () => {
     qrWindow = null;
   });
 
-  qrWindow.on("close", (event) => {
+  qrWindow.on('close', (event) => {
     if (!isQuitting && tray) {
       event.preventDefault();
       qrWindow?.hide();
@@ -275,24 +277,24 @@ async function runQrLoop(): Promise<void> {
   try {
     while (qrWindow) {
       try {
-        sendToQrWindow("qr-status", {
-          state: "loading",
-          message: "正在获取二维码...",
+        sendToQrWindow('qr-status', {
+          state: 'loading',
+          message: t('electron.qr.fetching')
         });
 
         const { qrcodeUrl, qrcodeId } = await startQrLogin();
 
         // Convert to data URL so the renderer can display it without file I/O
-        const QRCode = await import("qrcode");
+        const QRCode = await import('qrcode');
         const dataUrl = await QRCode.toDataURL(qrcodeUrl, {
           width: 280,
-          margin: 2,
+          margin: 2
         });
 
-        sendToQrWindow("qr-update", { dataUrl, qrcodeId });
-        sendToQrWindow("qr-status", {
-          state: "scan",
-          message: "请用微信扫描上方二维码",
+        sendToQrWindow('qr-update', { dataUrl, qrcodeId });
+        sendToQrWindow('qr-status', {
+          state: 'scan',
+          message: t('electron.qr.scanPrompt')
         });
 
         const account = await waitForQrScan(qrcodeId);
@@ -300,33 +302,35 @@ async function runQrLoop(): Promise<void> {
         connectedAccount = account;
         runtimeState.setupRequired = true;
         runtimeState.daemonRunning = false;
-        runtimeState.startedAt = "";
-        logger.info("QR scan confirmed, awaiting setup confirmation", {
+        runtimeState.startedAt = '';
+        logger.info('QR scan confirmed, awaiting setup confirmation', {
           accountId: account.accountId,
-          workingDirectory: loadConfig().workingDirectory || homedir(),
+          workingDirectory: loadConfig().workingDirectory || homedir()
         });
-        sendToQrWindow("qr-status", {
-          state: "success",
-          message: "✅ 绑定成功！",
+        sendToQrWindow('qr-status', {
+          state: 'success',
+          message: t('electron.qr.boundSuccess')
         });
         sendAppState({
-          mode: "scanned",
+          mode: 'scanned',
           accountId: account.accountId,
-          workingDirectory: loadConfig().workingDirectory || homedir(),
+          workingDirectory: loadConfig().workingDirectory || homedir()
         });
 
         return;
       } catch (err: any) {
-        if (err.message?.includes("expired")) {
-          sendToQrWindow("qr-status", {
-            state: "expired",
-            message: "二维码已过期，正在刷新...",
+        if (err.message?.includes('expired')) {
+          sendToQrWindow('qr-status', {
+            state: 'expired',
+            message: t('electron.qr.expiredRefreshing')
           });
           continue;
         }
-        sendToQrWindow("qr-status", {
-          state: "error",
-          message: `错误: ${err.message ?? String(err)}`,
+        sendToQrWindow('qr-status', {
+          state: 'error',
+          message: t('electron.qr.error', {
+            error: err.message ?? String(err)
+          })
         });
         await new Promise((r) => setTimeout(r, 3000));
       }
@@ -343,15 +347,15 @@ function sendToQrWindow(channel: string, data: unknown): void {
 }
 
 function sendAppState(data: {
-  mode: "login" | "scanned" | "connected";
+  mode: 'login' | 'scanned' | 'connected';
   accountId?: string;
   workingDirectory?: string;
 }): void {
-  sendToQrWindow("app-state", data);
+  sendToQrWindow('app-state', data);
 }
 
 function summarizeText(text: string, maxLen: number = 120): string {
-  const oneLine = text.replace(/\s+/g, " ").trim();
+  const oneLine = text.replace(/\s+/g, ' ').trim();
   if (oneLine.length <= maxLen) return oneLine;
   return `${oneLine.slice(0, maxLen)}...`;
 }
@@ -359,27 +363,29 @@ function summarizeText(text: string, maxLen: number = 120): string {
 function getLatestLogPath(): string {
   try {
     const files = readdirSync(LOG_DIR)
-      .filter((name) => name.startsWith("bridge-") && name.endsWith(".log"))
+      .filter((name) => name.startsWith('bridge-') && name.endsWith('.log'))
       .sort();
     const latest = files.at(-1);
-    return latest ? join(LOG_DIR, latest) : "";
+    return latest ? join(LOG_DIR, latest) : '';
   } catch {
-    return "";
+    return '';
   }
 }
 
 function readRecentLogs(maxLines: number = 120): string {
   const latestLogPath = getLatestLogPath();
   if (!latestLogPath || !existsSync(latestLogPath)) {
-    return "暂无日志";
+    return t('electron.logs.empty');
   }
 
   try {
-    const content = readFileSync(latestLogPath, "utf-8");
-    const lines = content.split("\n").filter(Boolean);
-    return lines.slice(-maxLines).join("\n") || "暂无日志";
+    const content = readFileSync(latestLogPath, 'utf-8');
+    const lines = content.split('\n').filter(Boolean);
+    return lines.slice(-maxLines).join('\n') || t('electron.logs.empty');
   } catch (error) {
-    return `读取日志失败: ${error instanceof Error ? error.message : String(error)}`;
+    return t('electron.logs.readFailed', {
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 }
 
@@ -412,7 +418,7 @@ function getDashboardData(): {
   lastError: string;
   recentMessages: Array<{
     id: string;
-    role: "incoming" | "reply" | "system" | "error";
+    role: 'incoming' | 'reply' | 'system' | 'error';
     text: string;
     timestamp: string;
     peer: string;
@@ -430,31 +436,29 @@ function getDashboardData(): {
     ? sessionStore.load(account.accountId)
     : {
         workingDirectory: config.workingDirectory || homedir(),
-        state: "idle",
+        state: 'idle',
         model: config.model,
         permissionMode: config.permissionMode,
-        sdkSessionId: "",
+        sdkSessionId: ''
       };
 
   return {
     connected: runtimeState.daemonRunning,
     setupRequired: runtimeState.setupRequired,
-    accountId: account?.accountId ?? "",
-    userId: account?.userId ?? "",
-    baseUrl: account?.baseUrl ?? "",
+    accountId: account?.accountId ?? '',
+    userId: account?.userId ?? '',
+    baseUrl: account?.baseUrl ?? '',
     workingDirectory: config.workingDirectory || homedir(),
     daemonRunning: runtimeState.daemonRunning,
     startedAt: runtimeState.startedAt,
-    sessionState: session.state ?? "idle",
-    model: session.model || config.model || "default",
-    configuredModel: config.model || "default",
-    permissionMode:
-      session.permissionMode || config.permissionMode || "bypassPermissions",
+    sessionState: session.state ?? 'idle',
+    model: session.model || config.model || 'default',
+    configuredModel: config.model || 'default',
+    permissionMode: session.permissionMode || config.permissionMode || 'bypassPermissions',
     dangerousPermissionsEnabled:
-      (session.permissionMode ||
-        config.permissionMode ||
-        "bypassPermissions") === "bypassPermissions",
-    sdkSessionId: session.sdkSessionId || "",
+      (session.permissionMode || config.permissionMode || 'bypassPermissions') ===
+      'bypassPermissions',
+    sdkSessionId: session.sdkSessionId || '',
     claudeWorkingDirectory:
       runtimeState.claudeWorkingDirectory ||
       session.workingDirectory ||
@@ -465,8 +469,8 @@ function getDashboardData(): {
         session.workingDirectory ||
         config.workingDirectory ||
         homedir()) === (config.workingDirectory || homedir())
-        ? "已锁定到 UI 选择目录，daemon 启动时会强制覆盖 session cwd"
-        : "当前 Claude cwd 与 UI 目录不一致，下一次启动会重新覆盖",
+        ? t('electron.cwd.locked')
+        : t('electron.cwd.mismatch'),
     resumeSessionReady: Boolean(session.sdkSessionId),
     suggestedModels: SUGGESTED_MODELS,
     sessionExpired: runtimeState.sessionExpired,
@@ -479,7 +483,7 @@ function getDashboardData(): {
     lastError: runtimeState.lastError,
     recentMessages: runtimeState.recentMessages,
     pendingPermission: runtimeState.pendingPermission,
-    logFile: getLatestLogPath(),
+    logFile: getLatestLogPath()
   };
 }
 
@@ -488,33 +492,35 @@ function getDashboardData(): {
 // ---------------------------------------------------------------------------
 
 function setupIpcHandlers(): void {
-  ipcMain.on("preload-ready", (_event, payload) => {
-    logger.info("Preload ready", payload);
+  ipcMain.on('preload-ready', (_event, payload) => {
+    logger.info('Preload ready', payload);
   });
 
   // Renderer asks to open a directory picker
-  ipcMain.handle("select-directory", async () => {
+  ipcMain.handle('select-directory', async () => {
     const result = await dialog.showOpenDialog({
-      properties: ["openDirectory", "createDirectory"],
-      title: "选择工作目录",
-      defaultPath: homedir(),
+      properties: ['openDirectory', 'createDirectory'],
+      title: t('electron.dialog.selectDirectory'),
+      defaultPath: homedir()
     });
     return result.canceled ? null : result.filePaths[0];
   });
 
   // Renderer confirms setup after QR scan
-  ipcMain.handle("confirm-setup", async (_event, workingDirectory: string) => {
-    if (!connectedAccount) return { ok: false, error: "未找到账号" };
+  ipcMain.handle('confirm-setup', async (_event, workingDirectory: string) => {
+    if (!connectedAccount) return { ok: false, error: t('electron.error.noAccount') };
 
     try {
-      logger.info("Setup confirmed from renderer", {
+      logger.info('Setup confirmed from renderer', {
         accountId: connectedAccount.accountId,
-        workingDirectory: workingDirectory || homedir(),
+        workingDirectory: workingDirectory || homedir()
       });
       pushRecentMessage({
-        role: "system",
-        text: `目录已确认，开始启动桥接：${workingDirectory || homedir()}`,
-        peer: connectedAccount.accountId,
+        role: 'system',
+        text: t('electron.system.directoryConfirmed', {
+          path: workingDirectory || homedir()
+        }),
+        peer: connectedAccount.accountId
       });
       const config = ensurePermissionModeConfig(loadConfig());
       config.workingDirectory = workingDirectory || homedir();
@@ -523,21 +529,19 @@ function setupIpcHandlers(): void {
       const session = sessionStore.load(connectedAccount.accountId);
       session.workingDirectory = config.workingDirectory;
       session.permissionMode =
-        config.permissionMode || session.permissionMode || "bypassPermissions";
+        config.permissionMode || session.permissionMode || 'bypassPermissions';
       sessionStore.save(connectedAccount.accountId, session);
       runtimeState.claudeWorkingDirectory = session.workingDirectory;
-      runtimeState.dangerousPermissionsEnabled =
-        session.permissionMode === "bypassPermissions";
-      runtimeState.cwdBindingStatus =
-        "已锁定到 UI 选择目录，daemon 启动时会强制覆盖 session cwd";
+      runtimeState.dangerousPermissionsEnabled = session.permissionMode === 'bypassPermissions';
+      runtimeState.cwdBindingStatus = t('electron.cwd.locked');
 
       await startDaemon(connectedAccount);
       setupTray(connectedAccount);
 
       sendAppState({
-        mode: "connected",
+        mode: 'connected',
         accountId: connectedAccount.accountId,
-        workingDirectory: config.workingDirectory,
+        workingDirectory: config.workingDirectory
       });
 
       return { ok: true };
@@ -547,67 +551,82 @@ function setupIpcHandlers(): void {
   });
 
   // Renderer asks for current config
-  ipcMain.handle("get-config", () => {
+  ipcMain.handle('get-config', () => {
     const config = ensurePermissionModeConfig(loadConfig());
     saveConfig(config);
     return {
       workingDirectory: config.workingDirectory || homedir(),
-      accountId: connectedAccount?.accountId ?? "",
+      accountId: connectedAccount?.accountId ?? '',
       connected: runtimeState.daemonRunning,
       setupRequired: runtimeState.setupRequired,
+      locale: config.locale || 'zh-CN'
     };
   });
 
-  ipcMain.handle("get-dashboard-data", () => {
+  ipcMain.handle('get-i18n-data', () => {
+    return getI18nPayload(getConfigState().locale);
+  });
+
+  ipcMain.handle('set-locale', async (_event, locale: string) => {
+    const config = getConfigState();
+    config.locale = locale;
+    saveConfig(config);
+    runtimeState.cwdBindingStatus = t('electron.cwd.locked');
+
+    if (qrWindow && !qrWindow.isDestroyed()) {
+      qrWindow.setTitle(t('electron.windowTitle'));
+    }
+
+    if (connectedAccount && tray) {
+      updateTrayMenu(connectedAccount);
+    }
+
+    return {
+      ok: true,
+      ...getI18nPayload(config.locale)
+    };
+  });
+
+  ipcMain.handle('get-dashboard-data', () => {
     return getDashboardData();
   });
 
-  ipcMain.handle("get-recent-logs", (_event, maxLines: number = 120) => {
+  ipcMain.handle('get-recent-logs', (_event, maxLines: number = 120) => {
     return { content: readRecentLogs(maxLines), logFile: getLatestLogPath() };
   });
 
-  ipcMain.handle(
-    "set-permission-mode",
-    async (_event, permissionMode: string) => {
-      if (
-        !["default", "acceptEdits", "plan", "bypassPermissions"].includes(
-          permissionMode,
-        )
-      ) {
-        return { ok: false, error: "不支持的权限模式" };
-      }
+  ipcMain.handle('set-permission-mode', async (_event, permissionMode: string) => {
+    if (!['default', 'acceptEdits', 'plan', 'bypassPermissions'].includes(permissionMode)) {
+      return { ok: false, error: t('electron.error.unsupportedPermissionMode') };
+    }
 
-      const config = ensurePermissionModeConfig(loadConfig());
-      config.permissionMode = permissionMode as PermissionMode;
-      config.permissionModeExplicit = true;
-      saveConfig(config);
+    const config = ensurePermissionModeConfig(loadConfig());
+    config.permissionMode = permissionMode as PermissionMode;
+    config.permissionModeExplicit = true;
+    saveConfig(config);
 
-      const account = connectedAccount;
-      if (account) {
-        const session = sessionStore.load(account.accountId);
-        session.permissionMode = config.permissionMode;
-        session.workingDirectory =
-          config.workingDirectory || session.workingDirectory || homedir();
-        sessionStore.save(account.accountId, session);
-      }
+    const account = connectedAccount;
+    if (account) {
+      const session = sessionStore.load(account.accountId);
+      session.permissionMode = config.permissionMode;
+      session.workingDirectory = config.workingDirectory || session.workingDirectory || homedir();
+      sessionStore.save(account.accountId, session);
+    }
 
-      runtimeState.dangerousPermissionsEnabled =
-        config.permissionMode === "bypassPermissions";
+    runtimeState.dangerousPermissionsEnabled = config.permissionMode === 'bypassPermissions';
 
-      pushRecentMessage({
-        role: "system",
-        text: `权限模式已切换为 ${permissionMode}`,
-        peer: connectedAccount?.accountId ?? "",
-      });
+    pushRecentMessage({
+      role: 'system',
+      text: t('electron.system.permissionModeUpdated', { mode: permissionMode }),
+      peer: connectedAccount?.accountId ?? ''
+    });
 
-      return { ok: true, permissionMode: config.permissionMode };
-    },
-  );
+    return { ok: true, permissionMode: config.permissionMode };
+  });
 
-  ipcMain.handle("set-model", async (_event, model: string) => {
+  ipcMain.handle('set-model', async (_event, model: string) => {
     const nextModel = model.trim();
-    const normalizedModel =
-      nextModel === "" || nextModel === "default" ? undefined : nextModel;
+    const normalizedModel = nextModel === '' || nextModel === 'default' ? undefined : nextModel;
 
     const config = ensurePermissionModeConfig(loadConfig());
     config.model = normalizedModel;
@@ -618,116 +637,119 @@ function setupIpcHandlers(): void {
       const session = sessionStore.load(account.accountId);
       session.model = normalizedModel;
       session.sdkSessionId = undefined;
-      session.state = "idle";
+      session.state = 'idle';
       sessionStore.save(account.accountId, session);
     }
 
     pushRecentMessage({
-      role: "system",
-      text: `Claude 模型已切换为 ${normalizedModel || "default"}，下次请求会以新模型启动新 session`,
-      peer: connectedAccount?.accountId ?? "",
+      role: 'system',
+      text: t('electron.system.modelUpdated', {
+        model: normalizedModel || 'default'
+      }),
+      peer: connectedAccount?.accountId ?? ''
     });
 
     return {
       ok: true,
-      model: normalizedModel || "default",
+      model: normalizedModel || 'default'
     };
   });
 
-  ipcMain.handle("resolve-permission", async (_event, allowed: boolean) => {
+  ipcMain.handle('resolve-permission', async (_event, allowed: boolean) => {
     if (!daemon || !runtimeState.pendingPermission) {
-      return { ok: false, error: "当前没有待处理的权限请求" };
+      return { ok: false, error: t('electron.error.noPendingPermission') };
     }
 
     const toolName = runtimeState.pendingPermission.toolName;
     const resolved = daemon.resolvePermission(allowed);
     if (!resolved) {
-      return { ok: false, error: "权限请求已失效" };
+      return { ok: false, error: t('electron.error.expiredPermissionRequest') };
     }
 
     runtimeState.pendingPermission = null;
     pushRecentMessage({
-      role: "system",
-      text: `${allowed ? "已允许" : "已拒绝"}工具权限：${toolName}`,
-      peer: connectedAccount?.accountId ?? "",
+      role: 'system',
+      text: t('electron.system.toolPermissionResolved', {
+        action: getPermissionActionLabel(allowed),
+        toolName
+      }),
+      peer: connectedAccount?.accountId ?? ''
     });
 
     return { ok: true };
   });
 
-  ipcMain.handle(
-    "set-working-directory",
-    async (_event, workingDirectory: string) => {
-      logger.info("Renderer requested working directory update", {
-        workingDirectory: workingDirectory || homedir(),
-        activeAccountId: connectedAccount?.accountId ?? "",
+  ipcMain.handle('set-working-directory', async (_event, workingDirectory: string) => {
+    logger.info('Renderer requested working directory update', {
+      workingDirectory: workingDirectory || homedir(),
+      activeAccountId: connectedAccount?.accountId ?? ''
+    });
+    pushRecentMessage({
+      role: 'system',
+      text: t('electron.system.workingDirectoryUpdated', {
+        path: workingDirectory || homedir()
+      }),
+      peer: connectedAccount?.accountId ?? ''
+    });
+    const config = loadConfig();
+    const normalizedConfig = ensurePermissionModeConfig(config);
+    normalizedConfig.workingDirectory = workingDirectory || homedir();
+    saveConfig(normalizedConfig);
+
+    const account = connectedAccount;
+    if (account) {
+      const session = sessionStore.load(account.accountId);
+      session.workingDirectory = normalizedConfig.workingDirectory;
+      sessionStore.save(account.accountId, session);
+      runtimeState.claudeWorkingDirectory = session.workingDirectory;
+      runtimeState.cwdBindingStatus = t('electron.cwd.locked');
+      updateTrayMenu(account);
+      sendAppState({
+        mode: 'connected',
+        accountId: account.accountId,
+        workingDirectory: normalizedConfig.workingDirectory
       });
-      pushRecentMessage({
-        role: "system",
-        text: `工作目录已更新为 ${workingDirectory || homedir()}`,
-        peer: connectedAccount?.accountId ?? "",
-      });
-      const config = loadConfig();
-      const normalizedConfig = ensurePermissionModeConfig(config);
-      normalizedConfig.workingDirectory = workingDirectory || homedir();
-      saveConfig(normalizedConfig);
+    }
 
-      const account = connectedAccount;
-      if (account) {
-        const session = sessionStore.load(account.accountId);
-        session.workingDirectory = normalizedConfig.workingDirectory;
-        sessionStore.save(account.accountId, session);
-        runtimeState.claudeWorkingDirectory = session.workingDirectory;
-        runtimeState.cwdBindingStatus =
-          "已锁定到 UI 选择目录，daemon 启动时会强制覆盖 session cwd";
-        updateTrayMenu(account);
-        sendAppState({
-          mode: "connected",
-          accountId: account.accountId,
-          workingDirectory: normalizedConfig.workingDirectory,
-        });
-      }
+    return { ok: true, workingDirectory: normalizedConfig.workingDirectory };
+  });
 
-      return { ok: true, workingDirectory: normalizedConfig.workingDirectory };
-    },
-  );
-
-  ipcMain.handle("open-working-directory", async () => {
+  ipcMain.handle('open-working-directory', async () => {
     const target = loadConfig().workingDirectory || homedir();
     return { result: await shell.openPath(target), path: target };
   });
 
-  ipcMain.handle("open-log-directory", async () => {
+  ipcMain.handle('open-log-directory', async () => {
     return { result: await shell.openPath(LOG_DIR), path: LOG_DIR };
   });
 
-  ipcMain.handle("show-main-window", async () => {
+  ipcMain.handle('show-main-window', async () => {
     await createQrWindow();
     const account = connectedAccount;
     if (runtimeState.daemonRunning && account) {
       sendAppState({
-        mode: "connected",
+        mode: 'connected',
         accountId: account.accountId,
-        workingDirectory: loadConfig().workingDirectory || homedir(),
+        workingDirectory: loadConfig().workingDirectory || homedir()
       });
     } else if (runtimeState.setupRequired && account) {
       sendAppState({
-        mode: "scanned",
+        mode: 'scanned',
         accountId: account.accountId,
-        workingDirectory: loadConfig().workingDirectory || homedir(),
+        workingDirectory: loadConfig().workingDirectory || homedir()
       });
     } else {
-      sendAppState({ mode: "login" });
+      sendAppState({ mode: 'login' });
     }
     return { ok: true };
   });
 
-  ipcMain.handle("relogin", async () => {
-    logger.info("Renderer requested re-login flow");
+  ipcMain.handle('relogin', async () => {
+    logger.info('Renderer requested re-login flow');
     pushRecentMessage({
-      role: "system",
-      text: "已触发重新扫码流程",
-      peer: connectedAccount?.accountId ?? "",
+      role: 'system',
+      text: t('electron.system.reloginTriggered'),
+      peer: connectedAccount?.accountId ?? ''
     });
     daemon?.stop();
     daemon = null;
@@ -735,7 +757,7 @@ function setupIpcHandlers(): void {
     runtimeState.setupRequired = false;
     connectedAccount = null;
     await createQrWindow();
-    sendAppState({ mode: "login" });
+    sendAppState({ mode: 'login' });
     void runQrLoop();
     return { ok: true };
   });
@@ -747,8 +769,8 @@ function setupIpcHandlers(): void {
 
 async function startDaemon(account: AccountData): Promise<void> {
   if (daemon) {
-    logger.info("Restarting existing daemon instance", {
-      accountId: connectedAccount?.accountId ?? account.accountId,
+    logger.info('Restarting existing daemon instance', {
+      accountId: connectedAccount?.accountId ?? account.accountId
     });
     daemon.stop();
     daemon = null;
@@ -757,26 +779,24 @@ async function startDaemon(account: AccountData): Promise<void> {
   const config = ensurePermissionModeConfig(loadConfig());
   saveConfig(config);
   const session = sessionStore.load(account.accountId);
-  session.workingDirectory =
-    config.workingDirectory || session.workingDirectory || homedir();
-  session.permissionMode =
-    config.permissionMode || session.permissionMode || "bypassPermissions";
+  session.workingDirectory = config.workingDirectory || session.workingDirectory || homedir();
+  session.permissionMode = config.permissionMode || session.permissionMode || 'bypassPermissions';
   sessionStore.save(account.accountId, session);
   runtimeState.claudeWorkingDirectory = session.workingDirectory;
-  runtimeState.dangerousPermissionsEnabled =
-    session.permissionMode === "bypassPermissions";
-  runtimeState.cwdBindingStatus =
-    "已锁定到 UI 选择目录，daemon 启动时会强制覆盖 session cwd";
-  logger.info("Starting daemon instance", {
+  runtimeState.dangerousPermissionsEnabled = session.permissionMode === 'bypassPermissions';
+  runtimeState.cwdBindingStatus = t('electron.cwd.locked');
+  logger.info('Starting daemon instance', {
     accountId: account.accountId,
     workingDirectory: session.workingDirectory,
-    permissionMode: session.permissionMode || "bypassPermissions",
-    model: config.model || "default",
+    permissionMode: session.permissionMode || 'bypassPermissions',
+    model: config.model || 'default'
   });
   pushRecentMessage({
-    role: "system",
-    text: `桥接已启动，工作目录：${session.workingDirectory}`,
-    peer: account.accountId,
+    role: 'system',
+    text: t('electron.system.bridgeStarted', {
+      path: session.workingDirectory
+    }),
+    peer: account.accountId
   });
 
   daemon = createDaemon({
@@ -785,16 +805,19 @@ async function startDaemon(account: AccountData): Promise<void> {
     onSessionExpired: () => {
       runtimeState.sessionExpired = true;
       runtimeState.lastErrorAt = new Date().toISOString();
-      runtimeState.lastError = "WeChat 会话已过期，需要重新扫码登录";
+      runtimeState.lastError = t('electron.error.sessionExpired');
       pushRecentMessage({
-        role: "error",
+        role: 'error',
         text: runtimeState.lastError,
-        peer: account.accountId,
+        peer: account.accountId
       });
-      logger.warn("Session expired — prompting re-login");
-      showNotification("WeChat 会话已过期", "请重新登录以继续使用");
+      logger.warn('Session expired — prompting re-login');
+      showNotification(
+        t('electron.notification.sessionExpiredTitle'),
+        t('electron.notification.sessionExpiredBody')
+      );
       createQrWindow().then(() => {
-        sendAppState({ mode: "login" });
+        sendAppState({ mode: 'login' });
         void runQrLoop();
       });
     },
@@ -804,52 +827,55 @@ async function startDaemon(account: AccountData): Promise<void> {
       runtimeState.lastIncomingFrom = fromUserId;
       runtimeState.lastIncomingText = summarizeText(text);
       pushRecentMessage({
-        role: "incoming",
+        role: 'incoming',
         text,
-        peer: fromUserId,
+        peer: fromUserId
       });
-      logger.info("Incoming WeChat message", {
+      logger.info('Incoming WeChat message', {
         from: fromUserId,
-        preview: text.slice(0, 60),
+        preview: text.slice(0, 60)
       });
     },
     onReply: (_toUserId, text) => {
       runtimeState.lastReplyAt = new Date().toISOString();
       runtimeState.lastReplyText = summarizeText(text);
       pushRecentMessage({
-        role: "reply",
+        role: 'reply',
         text,
-        peer: account.accountId,
+        peer: account.accountId
       });
-      logger.debug("Sent reply", { preview: text.slice(0, 60) });
+      logger.debug('Sent reply', { preview: text.slice(0, 60) });
     },
     onPermissionRequest: (toolName, toolInput) => {
       runtimeState.pendingPermission = {
         toolName,
         toolInput,
-        requestedAt: new Date().toISOString(),
+        requestedAt: new Date().toISOString()
       };
       pushRecentMessage({
-        role: "system",
-        text: `Claude 请求工具权限：${toolName}`,
-        peer: account.accountId,
+        role: 'system',
+        text: t('electron.system.permissionRequested', { toolName }),
+        peer: account.accountId
       });
     },
     onPermissionResolved: (allowed, toolName) => {
       runtimeState.pendingPermission = null;
       pushRecentMessage({
-        role: "system",
-        text: `${allowed ? "已允许" : "已拒绝"} Claude 工具权限：${toolName}`,
-        peer: account.accountId,
+        role: 'system',
+        text: t('electron.system.claudeToolPermissionResolved', {
+          action: getPermissionActionLabel(allowed),
+          toolName
+        }),
+        peer: account.accountId
       });
-    },
+    }
   });
 
   runtimeState.daemonRunning = true;
   runtimeState.setupRequired = false;
   runtimeState.startedAt = new Date().toISOString();
-  runtimeState.lastError = "";
-  runtimeState.lastErrorAt = "";
+  runtimeState.lastError = '';
+  runtimeState.lastErrorAt = '';
   runtimeState.sessionExpired = false;
   runtimeState.pendingPermission = null;
 
@@ -859,16 +885,19 @@ async function startDaemon(account: AccountData): Promise<void> {
     runtimeState.lastErrorAt = new Date().toISOString();
     runtimeState.lastError = err?.message ?? String(err);
     pushRecentMessage({
-      role: "error",
+      role: 'error',
       text: runtimeState.lastError,
-      peer: account.accountId,
+      peer: account.accountId
     });
-    logger.error("Daemon crashed", { error: err?.message ?? String(err) });
-    showNotification("服务崩溃", "正在尝试重启...");
+    logger.error('Daemon crashed', { error: err?.message ?? String(err) });
+    showNotification(
+      t('electron.notification.serviceCrashedTitle'),
+      t('electron.notification.serviceCrashedBody')
+    );
     setTimeout(() => startDaemon(account), 5000);
   });
 
-  logger.info("Daemon started", { accountId: account.accountId });
+  logger.info('Daemon started', { accountId: account.accountId });
 }
 
 // ---------------------------------------------------------------------------
@@ -885,20 +914,20 @@ function setupTray(account: AccountData): void {
   const icon = nativeImage.createFromDataURL(APP_ICON_DATA_URL);
   tray = new Tray(icon.resize({ width: 16, height: 16 }));
 
-  if (process.platform === "darwin") {
+  if (process.platform === 'darwin') {
     // macOS: show emoji in menu bar (more visible than tiny icon)
-    tray.setTitle("💬");
+    tray.setTitle('💬');
   }
 
-  tray.setToolTip(`WeChat Claude Code\n账号: ${account.accountId}`);
+  tray.setToolTip(t('electron.tray.tooltip', { accountId: account.accountId }));
   updateTrayMenu(account);
 
-  tray.on("double-click", () => {
+  tray.on('double-click', () => {
     createQrWindow().then(() => {
       sendAppState({
-        mode: "connected",
+        mode: 'connected',
         accountId: account.accountId,
-        workingDirectory: loadConfig().workingDirectory || homedir(),
+        workingDirectory: loadConfig().workingDirectory || homedir()
       });
     });
   });
@@ -908,74 +937,82 @@ function updateTrayMenu(account: AccountData): void {
   if (!tray) return;
 
   const config = loadConfig();
+  tray.setToolTip(t('electron.tray.tooltip', { accountId: account.accountId }));
 
   const menu = Menu.buildFromTemplate([
     {
-      label: `✅ 已连接 (${account.accountId.slice(0, 12)}...)`,
-      enabled: false,
+      label: t('electron.tray.connectedLabel', {
+        accountId: account.accountId.slice(0, 12)
+      }),
+      enabled: false
     },
     {
-      label: `📁 ${config.workingDirectory || homedir()}`,
-      enabled: false,
+      label: t('electron.tray.directoryLabel', {
+        path: config.workingDirectory || homedir()
+      }),
+      enabled: false
     },
-    { type: "separator" },
+    { type: 'separator' },
     {
-      label: "打开主窗口",
+      label: t('electron.tray.openMainWindow'),
       click: async () => {
         await createQrWindow();
         sendAppState({
-          mode: "connected",
+          mode: 'connected',
           accountId: account.accountId,
-          workingDirectory: config.workingDirectory || homedir(),
+          workingDirectory: config.workingDirectory || homedir()
         });
-      },
+      }
     },
     {
-      label: "隐藏到托盘",
+      label: t('electron.tray.hideToTray'),
       click: () => {
         qrWindow?.hide();
-      },
+      }
     },
-    { type: "separator" },
+    { type: 'separator' },
     {
-      label: "更改工作目录...",
+      label: t('electron.tray.changeWorkingDirectory'),
       click: async () => {
         const result = await dialog.showOpenDialog({
-          properties: ["openDirectory", "createDirectory"],
-          title: "选择工作目录",
-          defaultPath: config.workingDirectory || homedir(),
+          properties: ['openDirectory', 'createDirectory'],
+          title: t('electron.dialog.selectDirectory'),
+          defaultPath: config.workingDirectory || homedir()
         });
         if (!result.canceled && result.filePaths[0]) {
           config.workingDirectory = result.filePaths[0];
           saveConfig(config);
-          showNotification("工作目录已更新", result.filePaths[0]);
+          showNotification(
+            t('electron.notification.workingDirectoryUpdatedTitle'),
+            result.filePaths[0]
+          );
           updateTrayMenu(account);
         }
-      },
+      }
     },
     {
-      label: "打开工作目录",
+      label: t('electron.tray.openWorkingDirectory'),
       click: () => {
         shell.openPath(config.workingDirectory || homedir());
-      },
+      }
     },
-    { type: "separator" },
+    { type: 'separator' },
     {
-      label: "重新登录（换号或失效）",
+      label: t('electron.tray.relogin'),
       click: async () => {
         daemon?.stop();
         daemon = null;
         connectedAccount = null;
         await createQrWindow();
-        sendAppState({ mode: "login" });
+        sendAppState({ mode: 'login' });
         runQrLoop();
-      },
+      }
     },
-    { type: "separator" },
+    { type: 'separator' },
     {
-      label: "退出",
-      role: "quit",
-    },
+      label: t('electron.tray.quit'),
+      role: 'quit'
+    }
   ]);
 
   tray.setContextMenu(menu);
