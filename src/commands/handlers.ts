@@ -1,10 +1,4 @@
 import type { CommandContext, CommandResult } from "./router.js";
-import {
-  scanAllSkills,
-  formatSkillList,
-  findSkill,
-  type SkillInfo,
-} from "../claude/skill-scanner.js";
 
 const HELP_TEXT = `可用命令：
 
@@ -12,29 +6,9 @@ const HELP_TEXT = `可用命令：
   /clear          清除当前会话
   /model <名称>   切换 Claude 模型
   /status         查看当前会话状态
-  /skills         列出已安装的 skill
-  /<skill> [参数] 触发已安装的 skill
 
 直接输入文字即可与 Claude Code 对话`;
 
-// Cache the discovered skill list to avoid scanning the filesystem on every command.
-let cachedSkills: SkillInfo[] | null = null;
-let lastScanTime = 0;
-const CACHE_TTL = 60_000; // 60 seconds
-
-function getSkills(): SkillInfo[] {
-  const now = Date.now();
-  if (!cachedSkills || now - lastScanTime > CACHE_TTL) {
-    cachedSkills = scanAllSkills();
-    lastScanTime = now;
-  }
-  return cachedSkills;
-}
-
-/** Clear the skill cache so `/skills` can force a fresh scan. */
-export function invalidateSkillCache(): void {
-  cachedSkills = null;
-}
 
 export function handleHelp(_args: string): CommandResult {
   return { reply: HELP_TEXT, handled: true };
@@ -70,32 +44,4 @@ export function handleStatus(ctx: CommandContext): CommandResult {
   return { reply: lines.join("\n"), handled: true };
 }
 
-export function handleSkills(): CommandResult {
-  invalidateSkillCache();
-  const skills = getSkills();
-  if (skills.length === 0) {
-    return { reply: "未找到已安装的 skill。", handled: true };
-  }
-  const lines = skills.map((s) => `/${s.name} — ${s.description}`);
-  return {
-    reply: `📋 已安装的 Skill (${skills.length}):\n\n${lines.join("\n")}`,
-    handled: true,
-  };
-}
 
-export function handleUnknown(cmd: string, args: string): CommandResult {
-  const skills = getSkills();
-  const skill = findSkill(skills, cmd);
-
-  if (skill) {
-    const prompt = args
-      ? `Use the ${skill.name} skill: ${args}`
-      : `Use the ${skill.name} skill`;
-    return { handled: true, claudePrompt: prompt };
-  }
-
-  return {
-    handled: true,
-    reply: `未找到 skill: ${cmd}\n输入 /skills 查看可用列表`,
-  };
-}
