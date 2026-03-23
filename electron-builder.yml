@@ -21,7 +21,7 @@ mac:
       arch:
         - arm64    # Apple Silicon
         - x64      # Intel
-  icon: electron/assets/icon.png
+  icon: electron/assets/icon.icns
 
 dmg:
   title: WeChat Claude Code
@@ -42,6 +42,9 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
+  installerIcon: electron/assets/icon.ico
+  uninstallerIcon: electron/assets/icon.ico
+  installerHeaderIcon: electron/assets/icon.ico
 
 # Linux
 linux:
