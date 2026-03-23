@@ -1,6 +1,6 @@
 {
   "name": "wechat-claude-code",
-  "version": "1.0.0",
+  "version": "2026.3.23-4",
   "description": "Chat with Claude Code from WeChat — desktop app (Electron) + CLI",
   "license": "MIT",
   "author": "AceDataCloud",
