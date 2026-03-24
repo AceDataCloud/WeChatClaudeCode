@@ -17,6 +17,7 @@ import {
   Notification,
   shell
 } from 'electron';
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -135,6 +136,44 @@ function pushRecentMessage(entry: {
     runtimeState.recentMessages.length = 40;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Fix PATH for macOS/Linux — Electron GUI apps inherit a minimal PATH that
+// doesn't include user-installed node (nvm, volta, homebrew, fnm, etc.).
+// We resolve the real PATH from the user's login shell before anything runs.
+// ---------------------------------------------------------------------------
+
+function fixElectronPath(): void {
+  if (process.platform !== 'darwin' && process.platform !== 'linux') return;
+
+  try {
+    const shell = process.env.SHELL || '/bin/zsh';
+    const result = execFileSync(shell, ['-ilc', 'echo -n "$PATH"'], {
+      encoding: 'utf8',
+      timeout: 5000,
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+    if (result) {
+      process.env.PATH = result;
+      logger.info('Resolved shell PATH for Electron', { pathLength: result.length });
+    }
+  } catch {
+    // Fallback: prepend common node binary directories
+    const home = homedir();
+    const fallbackPaths = [
+      '/opt/homebrew/bin',
+      '/usr/local/bin',
+      `${home}/.volta/bin`,
+      `${home}/.fnm/aliases/default/bin`
+    ].filter((p) => existsSync(p));
+    if (fallbackPaths.length) {
+      process.env.PATH = [...fallbackPaths, process.env.PATH].join(':');
+      logger.info('Applied fallback PATH entries', { added: fallbackPaths });
+    }
+  }
+}
+
+fixElectronPath();
 
 // ---------------------------------------------------------------------------
 // Single instance lock
