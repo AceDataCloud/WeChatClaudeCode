@@ -1,4 +1,5 @@
 import { logger } from './logger.js';
+import { createTranslator, type AppLocale } from './i18n/index.js';
 import type { PendingPermission } from './session.js';
 
 const PERMISSION_TIMEOUT = 60_000;
@@ -35,15 +36,16 @@ export function createPermissionBroker(onTimeout?: OnPermissionTimeout) {
     return pending.get(accountId);
   }
 
-  function formatPendingMessage(perm: PendingPermission): string {
+  function formatPendingMessage(perm: PendingPermission, locale?: AppLocale): string {
+    const t = createTranslator(locale);
     return [
-      '\u{1F527} \u6743\u9650\u8BF7\u6C42',
+      t('daemon.permissionRequestTitle'),
       '',
-      `\u5DE5\u5177: ${perm.toolName}`,
-      `\u8F93\u5165: ${perm.toolInput.slice(0, 500)}`,
+      t('daemon.permissionRequestTool', { toolName: perm.toolName }),
+      t('daemon.permissionRequestInput', { toolInput: perm.toolInput.slice(0, 500) }),
       '',
-      '\u56DE\u590D y \u5141\u8BB8\uFF0Cn \u62D2\u7EDD',
-      '(60\u79D2\u672A\u56DE\u590D\u81EA\u52A8\u62D2\u7EDD)',
+      t('daemon.permissionRequestHint'),
+      t('daemon.permissionRequestTimeout')
     ].join('\n');
   }
 
@@ -53,7 +55,10 @@ export function createPermissionBroker(onTimeout?: OnPermissionTimeout) {
     clearTimeout(perm.timer);
     pending.delete(accountId);
     perm.resolve(false);
-    logger.info('Permission auto-rejected (session cleared)', { accountId, toolName: perm.toolName });
+    logger.info('Permission auto-rejected (session cleared)', {
+      accountId,
+      toolName: perm.toolName
+    });
     return true;
   }
 

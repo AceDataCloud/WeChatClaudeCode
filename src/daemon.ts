@@ -354,7 +354,7 @@ async function sendToClaude(
           await sender.sendText(
             fromUserId,
             contextToken,
-            permissionBroker.formatPendingMessage(perm)
+            permissionBroker.formatPendingMessage(perm, config.locale)
           );
         }
 

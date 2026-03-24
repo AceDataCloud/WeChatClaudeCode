@@ -1,57 +1,63 @@
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer } = require('electron');
 
-ipcRenderer.send("preload-ready", {
+ipcRenderer.send('preload-ready', {
   hasContextBridge: true,
-  location: "electron/preload.cjs",
+  location: 'electron/preload.cjs'
 });
 
-contextBridge.exposeInMainWorld("electronAPI", {
+contextBridge.exposeInMainWorld('electronAPI', {
   onQrUpdate(cb) {
-    ipcRenderer.on("qr-update", (_event, data) => cb(data));
+    ipcRenderer.on('qr-update', (_event, data) => cb(data));
   },
   onQrStatus(cb) {
-    ipcRenderer.on("qr-status", (_event, status) => cb(status));
+    ipcRenderer.on('qr-status', (_event, status) => cb(status));
   },
   onAppState(cb) {
-    ipcRenderer.on("app-state", (_event, state) => cb(state));
+    ipcRenderer.on('app-state', (_event, state) => cb(state));
   },
   selectDirectory() {
-    return ipcRenderer.invoke("select-directory");
+    return ipcRenderer.invoke('select-directory');
   },
   confirmSetup(workingDirectory) {
-    return ipcRenderer.invoke("confirm-setup", workingDirectory);
+    return ipcRenderer.invoke('confirm-setup', workingDirectory);
   },
   getConfig() {
-    return ipcRenderer.invoke("get-config");
+    return ipcRenderer.invoke('get-config');
+  },
+  getI18nData() {
+    return ipcRenderer.invoke('get-i18n-data');
+  },
+  setLocale(locale) {
+    return ipcRenderer.invoke('set-locale', locale);
   },
   getDashboardData() {
-    return ipcRenderer.invoke("get-dashboard-data");
+    return ipcRenderer.invoke('get-dashboard-data');
   },
   getRecentLogs(maxLines = 120) {
-    return ipcRenderer.invoke("get-recent-logs", maxLines);
+    return ipcRenderer.invoke('get-recent-logs', maxLines);
   },
   setWorkingDirectory(workingDirectory) {
-    return ipcRenderer.invoke("set-working-directory", workingDirectory);
+    return ipcRenderer.invoke('set-working-directory', workingDirectory);
   },
   setPermissionMode(permissionMode) {
-    return ipcRenderer.invoke("set-permission-mode", permissionMode);
+    return ipcRenderer.invoke('set-permission-mode', permissionMode);
   },
   setModel(model) {
-    return ipcRenderer.invoke("set-model", model);
+    return ipcRenderer.invoke('set-model', model);
   },
   resolvePermission(allowed) {
-    return ipcRenderer.invoke("resolve-permission", allowed);
+    return ipcRenderer.invoke('resolve-permission', allowed);
   },
   openWorkingDirectory() {
-    return ipcRenderer.invoke("open-working-directory");
+    return ipcRenderer.invoke('open-working-directory');
   },
   openLogDirectory() {
-    return ipcRenderer.invoke("open-log-directory");
+    return ipcRenderer.invoke('open-log-directory');
   },
   relogin() {
-    return ipcRenderer.invoke("relogin");
+    return ipcRenderer.invoke('relogin');
   },
   showMainWindow() {
-    return ipcRenderer.invoke("show-main-window");
-  },
+    return ipcRenderer.invoke('show-main-window');
+  }
 });
