@@ -11,6 +11,11 @@ files:
   - node_modules/**
   - package.json
 
+# The claude-agent-sdk spawns cli.js via child_process.spawn().
+# child processes can't read files inside asar, so unpack it.
+asarUnpack:
+  - node_modules/@anthropic-ai/claude-agent-sdk/**
+
 # Do NOT include the CLI dist/ or src/ in the Electron app
 extraFiles: []
 
